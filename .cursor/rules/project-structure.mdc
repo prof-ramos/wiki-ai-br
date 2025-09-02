@@ -1,0 +1,49 @@
+---
+alwaysApply: true
+description: "Estrutura e organização do projeto wiki-ai-br baseado no framework Astro"
+---
+
+# Estrutura do Projeto Wiki AI Brasil
+
+## Arquitetura Geral
+Este projeto utiliza o framework **Astro** com as seguintes características principais:
+- **Deploy**: Cloudflare Workers
+- **Conteúdo**: Sistema de conteúdo baseado em MDX
+- **Estilo**: CSS global com componentes modulares
+- **Tipo**: TypeScript para type safety
+
+## Estrutura de Diretórios
+
+### `src/`
+- **`components/`**: Componentes reutilizáveis (.astro, .tsx)
+- **`pages/`**: Páginas do site com roteamento automático
+- **`layouts/`**: Layouts base para diferentes tipos de página
+- **`content/`**: Conteúdo estruturado (posts do blog)
+- **`styles/`**: Estilos globais e utilitários
+- **`consts.ts`**: Constantes globais do projeto
+
+### `public/`
+- Assets estáticos (imagens, fonts, favicon)
+- Arquivos servidos diretamente via CDN
+
+## Componentes Principais
+- **BaseHead.astro**: Metadados HTML globais e SEO
+- **Header.astro**: Navegação principal
+- **Footer.astro**: Rodapé do site
+- **BlogPost.astro**: Layout para posts do blog
+
+## Sistema de Conteúdo
+- Posts em `src/content/blog/` com extensão `.md` ou `.mdx`
+- Esquema de validação em `src/content.config.ts`
+- Frontmatter padronizado com: `title`, `description`, `pubDate`, `heroImage`
+
+## Configuração
+- **astro.config.mjs**: Configuração do Astro com integrações MDX e Sitemap
+- **package.json**: Scripts de desenvolvimento, build e deploy
+- **wrangler.json**: Configuração específica do Cloudflare
+
+## Convenções de Desenvolvimento
+- Componentes em PascalCase com extensão `.astro`
+- Páginas seguem estrutura de roteamento do Astro
+- TypeScript obrigatório para novos componentes
+- Conteúdo em português brasileiro

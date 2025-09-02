@@ -1,0 +1,64 @@
+---
+globs: *.astro,*.tsx,*.jsx,*.ts,*.js
+description: "Convenções de nomenclatura e estrutura para componentes Astro e TypeScript"
+---
+
+# Convenções de Componentes
+
+## Nomenclatura
+- **Componentes**: PascalCase (ex: `BaseHead.astro`, `HeaderLink.astro`)
+- **Arquivos**: Mesmo nome do componente com extensão apropriada
+- **Props**: camelCase (ex: `heroImage`, `siteTitle`)
+- **Variáveis**: camelCase (ex: `canonicalURL`, `currentPath`)
+- **Constantes**: UPPER_SNAKE_CASE (ex: `SITE_TITLE`)
+
+## Estrutura de Componentes Astro
+
+### Frontmatter (TypeScript)
+```typescript
+---
+// Imports necessários
+import '../styles/component.css';
+
+// Interface para props
+interface Props {
+  title: string;
+  description: string;
+  image?: string;
+}
+
+// Destructuring com valores padrão
+const { title, description, image = '/default-image.jpg' } = Astro.props;
+---
+
+<!-- Template HTML -->
+<div class="component">
+  <h1>{title}</h1>
+  <p>{description}</p>
+  {image && <img src={image} alt={title} />}
+</div>
+```
+
+### Padrões de Props
+- Use `interface Props` para type safety
+- Props opcionais com `?:` e valores padrão
+- Props obrigatórios sempre documentados
+
+### Importações
+- Imports relativos com `../` para arquivos locais
+- Imports absolutos para dependências npm
+- Agrupe imports por tipo: dependências externas, componentes locais, utilitários
+
+## Componentes Reutilizáveis
+- **BaseHead.astro**: Metadados globais (SEO, fonts, canonical URL)
+- **Header.astro**: Navegação principal
+- **Footer.astro**: Informações de rodapé
+- **FormattedDate.astro**: Formatação consistente de datas
+- **HeaderLink.astro**: Links de navegação estilizados
+
+## Boas Práticas
+- Mantenha componentes pequenos e focados
+- Use TypeScript para todas as props
+- Documente props complexas com comentários JSDoc
+- Prefira componentes funcionais sobre baseados em classe
+- Use destructuring para acessar props

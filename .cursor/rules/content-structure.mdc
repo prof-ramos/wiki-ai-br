@@ -1,0 +1,98 @@
+---
+globs: *.md,*.mdx
+description: "Estrutura e padrões para conteúdo do blog wiki.ai.br"
+---
+
+# Estrutura de Conteúdo
+
+## Sistema de Conteúdo MDX
+Este projeto usa MDX para criar conteúdo estruturado e reutilizável. Todos os posts seguem um padrão consistente definido em `src/content.config.ts`.
+
+### Frontmatter Padrão
+Cada post deve ter o seguinte frontmatter:
+
+```yaml
+---
+title: "Título do Artigo"
+description: "Descrição breve e atrativa do conteúdo"
+pubDate: 2024-01-15
+updatedDate: 2024-01-20
+heroImage: "/images/artigo-hero.jpg"
+---
+```
+
+### Campos Obrigatórios
+- **title**: Título do artigo (string)
+- **description**: Descrição para SEO e previews (string)
+- **pubDate**: Data de publicação (YYYY-MM-DD)
+
+### Campos Opcionais
+- **updatedDate**: Data da última atualização
+- **heroImage**: Imagem de destaque (caminho relativo)
+
+## Estrutura de Categorias
+Organize o conteúdo por pastas temáticas em `src/content/`:
+
+```
+src/content/
+  blog/
+    inteligencia-artificial/
+    prompts/
+    ferramentas/
+    tutoriais/
+    casos-de-uso/
+```
+
+### Categorias Principais
+- **inteligencia-artificial**: Conceitos fundamentais de IA
+- **prompts**: Técnicas de prompt engineering
+- **ferramentas**: Revisões e comparativos de ferramentas
+- **tutoriais**: Guias passo-a-passo práticos
+- **casos-de-uso**: Aplicações reais de IA
+
+## Padrões de Nomenclatura
+- Arquivos: `kebab-case.md` ou `kebab-case.mdx`
+- URLs: Automáticas baseadas no nome do arquivo
+- Imagens: `kebab-case.jpg` ou `kebab-case.png`
+
+## Estrutura de Artigos
+Use headings hierárquicos (H1-H6) para organização:
+
+```markdown
+# Título Principal (H1 - apenas um por artigo)
+
+## Introdução (H2)
+
+### Conceito Básico (H3)
+
+Conteúdo explicativo...
+
+#### Exemplo Prático (H4)
+
+Código ou exemplo...
+
+## Conclusão (H2)
+```
+
+## Elementos MDX Suportados
+- **Links**: `[texto](url)`
+- **Imagens**: `![alt](caminho)`
+- **Código**: `` `inline` `` ou blocos de código
+- **Listas**: Ordenadas e não-ordenadas
+- **Tabelas**: Para comparações e dados estruturados
+- **Citações**: Para destaques importantes
+
+## Boas Práticas de Conteúdo
+- Mantenha artigos focados (800-2000 palavras)
+- Use português brasileiro consistente
+- Inclua exemplos práticos sempre que possível
+- Adicione links para referências externas
+- Use imagens otimizadas para web
+- Inclua meta-descrições atrativas
+
+## SEO e Acessibilidade
+- Títulos descritivos e únicos
+- URLs amigáveis (SEO-friendly)
+- Texto alternativo em todas as imagens
+- Estrutura semântica com headings adequados
+- Links descritivos (não use "clique aqui")
