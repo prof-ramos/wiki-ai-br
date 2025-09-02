@@ -1,0 +1,506 @@
+---
+globs: components.json,tailwind.config.js,*.config.js
+description: "Configuração completa do ShadCN UI com Tailwind CSS no projeto wiki.ai.br"
+---
+
+# Configuração ShadCN UI + Tailwind CSS
+
+## Visão Geral
+
+Esta regra documenta a configuração completa do ShadCN UI com Tailwind CSS para o projeto wiki.ai.br, seguindo as melhores práticas da documentação oficial.
+
+## 1. Instalação e Inicialização
+
+### Comando de Inicialização
+```bash
+npx shadcn@latest init
+```
+
+### Configuração Interativa Recomendada
+```
+Would you like to use TypeScript (recommended)? yes
+Which style would you like to use? › Default
+Which color would you like to use as base color? › Slate
+Where is your global CSS file? › app/globals.css
+Do you want to use CSS variables for colors? › yes
+Where is your tailwind.config.js located? › tailwind.config.js
+Configure the import alias for components: › @/components
+Configure the import alias for utils: › @/lib/utils
+Are you using React Server Components? › yes
+```
+
+### Arquivo components.json Gerado
+```json
+{
+  "$schema": "https://ui.shadcn.com/schema.json",
+  "style": "default",
+  "rsc": true,
+  "tsx": true,
+  "tailwind": {
+    "config": "tailwind.config.js",
+    "css": "app/globals.css",
+    "baseColor": "slate",
+    "cssVariables": true
+  },
+  "aliases": {
+    "components": "@/components",
+    "utils": "@/lib/utils"
+  }
+}
+```
+
+## 2. Configuração do Tailwind CSS
+
+### tailwind.config.js Atualizado
+```javascript
+/** @type {import('tailwindcss').Config} */
+module.exports = {
+  darkMode: 'selector',
+  content: [
+    './src/pages/**/*.{js,ts,jsx,tsx,mdx}',
+    './src/components/**/*.{js,ts,jsx,tsx,mdx}',
+    './src/app/**/*.{js,ts,jsx,tsx,mdx}',
+  ],
+  theme: {
+    extend: {
+      colors: {
+        border: "hsl(var(--border))",
+        input: "hsl(var(--input))",
+        ring: "hsl(var(--ring))",
+        background: "hsl(var(--background))",
+        foreground: "hsl(var(--foreground))",
+        primary: {
+          DEFAULT: "hsl(var(--primary))",
+          foreground: "hsl(var(--primary-foreground))",
+        },
+        secondary: {
+          DEFAULT: "hsl(var(--secondary))",
+          foreground: "hsl(var(--secondary-foreground))",
+        },
+        destructive: {
+          DEFAULT: "hsl(var(--destructive))",
+          foreground: "hsl(var(--destructive-foreground))",
+        },
+        muted: {
+          DEFAULT: "hsl(var(--muted))",
+          foreground: "hsl(var(--muted-foreground))",
+        },
+        accent: {
+          DEFAULT: "hsl(var(--accent))",
+          foreground: "hsl(var(--accent-foreground))",
+        },
+        popover: {
+          DEFAULT: "hsl(var(--popover))",
+          foreground: "hsl(var(--popover-foreground))",
+        },
+        card: {
+          DEFAULT: "hsl(var(--card))",
+          foreground: "hsl(var(--card-foreground))",
+        },
+      },
+      borderRadius: {
+        lg: "var(--radius)",
+        md: "calc(var(--radius) - 2px)",
+        sm: "calc(var(--radius) - 4px)",
+      },
+    },
+  },
+  plugins: [require("tailwindcss-animate")],
+}
+```
+
+### CSS Global Atualizado
+```css
+/* app/globals.css */
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: 221.2 83.2% 53.3%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96%;
+    --secondary-foreground: 222.2 84% 4.9%;
+    --muted: 210 40% 96%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 210 40% 96%;
+    --accent-foreground: 222.2 84% 4.9%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 221.2 83.2% 53.3%;
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 217.2 91.2% 59.8%;
+    --primary-foreground: 222.2 84% 4.9%;
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217.2 32.6% 17.5%;
+    --border-foreground: 210 40% 98%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 224.3 76.3% 94.1%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+```
+
+## 3. Utilitários Essenciais
+
+### lib/utils.ts
+```typescript
+import { type ClassValue, clsx } from "clsx"
+import { twMerge } from "tailwind-merge"
+
+export function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs))
+}
+```
+
+### Dependências Necessárias
+```bash
+npm install clsx tailwind-merge class-variance-authority lucide-react
+```
+
+## 4. Componentes Essenciais do Wiki AI
+
+### Adicionando Componentes Principais
+```bash
+# Componentes de UI básicos
+npx shadcn@latest add button
+npx shadcn@latest add input
+npx shadcn@latest add textarea
+npx shadcn@latest add card
+npx shadcn@latest add badge
+
+# Navegação e layout
+npx shadcn@latest add sidebar
+npx shadcn@latest add breadcrumb
+npx shadcn@latest add navigation-menu
+npx shadcn@latest add separator
+
+# Feedback e interação
+npx shadcn@latest add alert
+npx shadcn@latest add dialog
+npx shadcn@latest add dropdown-menu
+npx shadcn@latest add tooltip
+
+# Dados e tabelas
+npx shadcn@latest add table
+npx shadcn@latest add pagination
+npx shadcn@latest add select
+
+# Formulários
+npx shadcn@latest add form
+npx shadcn@latest add checkbox
+npx shadcn@latest add radio-group
+npx shadcn@latest add switch
+```
+
+## 5. Estrutura de Componentes
+
+### Organização Recomendada
+```
+components/
+  ui/                    # Componentes ShadCN
+    button.tsx
+    card.tsx
+    input.tsx
+    sidebar.tsx
+    dialog.tsx
+    ...
+  theme-provider.tsx    # Provider para temas
+  theme-toggle.tsx      # Toggle dark/light mode
+  navigation/           # Componentes de navegação
+    main-nav.tsx
+    mobile-nav.tsx
+  layout/               # Componentes de layout
+    header.tsx
+    footer.tsx
+    sidebar-nav.tsx
+  content/              # Componentes de conteúdo
+    article-card.tsx
+    article-list.tsx
+    breadcrumb-nav.tsx
+```
+
+### Exemplo de Componente Customizado
+```tsx
+// components/article-card.tsx
+import Link from "next/link"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+
+interface ArticleCardProps {
+  title: string
+  description: string
+  date: string
+  category: string
+  slug: string
+  tags?: string[]
+}
+
+export function ArticleCard({
+  title,
+  description,
+  date,
+  category,
+  slug,
+  tags = []
+}: ArticleCardProps) {
+  return (
+    <Card className="h-full hover:shadow-lg transition-shadow">
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <Badge variant="secondary">{category}</Badge>
+          <time className="text-sm text-muted-foreground">{date}</time>
+        </div>
+        <CardTitle className="line-clamp-2">
+          <Link href={`/blog/${slug}`} className="hover:text-primary transition-colors">
+            {title}
+          </Link>
+        </CardTitle>
+        <CardDescription className="line-clamp-3">
+          {description}
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="flex flex-wrap gap-1">
+          {tags.map((tag) => (
+            <Badge key={tag} variant="outline" className="text-xs">
+              {tag}
+            </Badge>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+```
+
+## 6. Configuração de Temas
+
+### Theme Provider
+```tsx
+// components/theme-provider.tsx
+"use client"
+
+import * as React from "react"
+import { ThemeProvider as NextThemesProvider } from "next-themes"
+
+type ThemeProviderProps = React.ComponentProps<typeof NextThemesProvider>
+
+export function ThemeProvider({ children, ...props }: ThemeProviderProps) {
+  return <NextThemesProvider {...props}>{children}</NextThemesProvider>
+}
+```
+
+### Theme Toggle
+```tsx
+// components/theme-toggle.tsx
+"use client"
+
+import * as React from "react"
+import { Moon, Sun } from "lucide-react"
+import { useTheme } from "next-themes"
+
+import { Button } from "@/components/ui/button"
+
+export function ThemeToggle() {
+  const { setTheme, theme } = useTheme()
+
+  return (
+    <Button
+      variant="outline"
+      size="icon"
+      onClick={() => setTheme(theme === "light" ? "dark" : "light")}
+    >
+      <Sun className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+      <Moon className="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+      <span className="sr-only">Toggle theme</span>
+    </Button>
+  )
+}
+```
+
+## 7. Integração no Layout Raiz
+
+### app/layout.tsx
+```tsx
+import type { Metadata } from "next"
+import { Inter } from "next/font/google"
+import "./globals.css"
+
+import { ThemeProvider } from "@/components/theme-provider"
+import { SidebarProvider } from "@/components/ui/sidebar"
+import { AppSidebar } from "@/components/app-sidebar"
+
+const inter = Inter({ subsets: ["latin"] })
+
+export const metadata: Metadata = {
+  title: "Wiki AI Brasil",
+  description: "Blog educacional sobre Inteligência Artificial, Prompts e Ferramentas",
+}
+
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
+  return (
+    <html lang="pt-BR" suppressHydrationWarning>
+      <body className={inter.className}>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <SidebarProvider>
+            <AppSidebar />
+            <main className="flex-1">
+              {children}
+            </main>
+          </SidebarProvider>
+        </ThemeProvider>
+      </body>
+    </html>
+  )
+}
+```
+
+## 8. Sidebar de Navegação
+
+### components/app-sidebar.tsx
+```tsx
+// components/app-sidebar.tsx
+"use client"
+
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarHeader,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+} from "@/components/ui/sidebar"
+import { ThemeToggle } from "@/components/theme-toggle"
+import Link from "next/link"
+
+const menuItems = [
+  { title: "Home", url: "/", icon: "Home" },
+  { title: "Inteligência Artificial", url: "/inteligencia-artificial", icon: "Brain" },
+  { title: "Prompts", url: "/prompts", icon: "MessageSquare" },
+  { title: "Ferramentas", url: "/ferramentas", icon: "Tool" },
+  { title: "Tutoriais", url: "/tutoriais", icon: "BookOpen" },
+  { title: "Casos de Uso", url: "/casos-de-uso", icon: "Target" },
+  { title: "Sobre", url: "/about", icon: "Info" },
+]
+
+export function AppSidebar() {
+  return (
+    <Sidebar>
+      <SidebarHeader>
+        <div className="flex items-center gap-2 px-4 py-2">
+          <h2 className="font-bold text-lg">Wiki AI Brasil</h2>
+        </div>
+      </SidebarHeader>
+
+      <SidebarContent>
+        <SidebarGroup>
+          <SidebarGroupLabel>Navegação</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {menuItems.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton asChild>
+                    <Link href={item.url}>
+                      <span>{item.title}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+      </SidebarContent>
+
+      <SidebarFooter>
+        <div className="p-4">
+          <ThemeToggle />
+        </div>
+      </SidebarFooter>
+    </Sidebar>
+  )
+}
+```
+
+## 9. Configuração de PostCSS
+
+### postcss.config.mjs
+```javascript
+const config = {
+  plugins: {
+    "@tailwindcss/postcss": {},
+  },
+};
+
+export default config;
+```
+
+## 10. Verificação da Configuração
+
+### Comando para Verificar
+```bash
+# Verificar se tudo está funcionando
+npm run dev
+
+# Verificar tipos
+npm run type-check
+
+# Verificar linting
+npm run lint
+```
+
+### Checklist de Configuração
+- [ ] ShadCN UI inicializado corretamente
+- [ ] Tailwind CSS configurado com variáveis CSS
+- [ ] Componentes essenciais instalados
+- [ ] Theme provider configurado
+- [ ] Dark mode funcionando
+- [ ] Sidebar implementada
+- [ ] Navegação responsiva
+- [ ] Build sem erros
+
+Esta configuração fornece uma base sólida para o desenvolvimento do wiki.ai.br com ShadCN UI e Tailwind CSS, garantindo consistência visual e funcionalidade moderna.

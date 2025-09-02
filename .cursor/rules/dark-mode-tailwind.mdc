@@ -1,0 +1,610 @@
+---
+globs: tailwind.config.js,app/globals.css,*.css,*.tsx,*.jsx
+description: "Implementação completa de dark mode usando Tailwind CSS e next-themes"
+---
+
+# Dark Mode com Tailwind CSS
+
+## Visão Geral
+
+Esta regra documenta a implementação completa de dark mode no projeto wiki.ai.br usando Tailwind CSS e next-themes, seguindo as melhores práticas da documentação oficial.
+
+## 1. Configuração Básica do Tailwind
+
+### tailwind.config.js
+```javascript
+/** @type {import('tailwindcss').Config} */
+module.exports = {
+  darkMode: 'selector',
+  content: [
+    './src/pages/**/*.{js,ts,jsx,tsx,mdx}',
+    './src/components/**/*.{js,ts,jsx,tsx,mdx}',
+    './src/app/**/*.{js,ts,jsx,tsx,mdx}',
+  ],
+  theme: {
+    extend: {
+      colors: {
+        // Definir cores customizadas
+        background: 'hsl(var(--background))',
+        foreground: 'hsl(var(--foreground))',
+        primary: {
+          DEFAULT: 'hsl(var(--primary))',
+          foreground: 'hsl(var(--primary-foreground))',
+        },
+        secondary: {
+          DEFAULT: 'hsl(var(--secondary))',
+          foreground: 'hsl(var(--secondary-foreground))',
+        },
+        // ... outras cores
+      },
+      borderRadius: {
+        lg: 'var(--radius)',
+        md: 'calc(var(--radius) - 2px)',
+        sm: 'calc(var(--radius) - 4px)',
+      },
+    },
+  },
+  plugins: [],
+}
+```
+
+### CSS Global com Variáveis
+```css
+/* app/globals.css */
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: 221.2 83.2% 53.3%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96%;
+    --secondary-foreground: 222.2 84% 4.9%;
+    --muted: 210 40% 96%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 210 40% 96%;
+    --accent-foreground: 222.2 84% 4.9%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 221.2 83.2% 53.3%;
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 217.2 91.2% 59.8%;
+    --primary-foreground: 222.2 84% 4.9%;
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217.2 32.6% 17.5%;
+    --border-foreground: 210 40% 98%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 224.3 76.3% 94.1%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+```
+
+## 2. Estratégias de Dark Mode
+
+### Estratégia 'selector' (Recomendada)
+```javascript
+// tailwind.config.js
+module.exports = {
+  darkMode: 'selector',
+  // ...
+}
+```
+
+Esta estratégia:
+- Usa atributo `class` no HTML
+- Compatível com `next-themes`
+- Melhor performance
+- Suporte completo a CSS variables
+
+### Estratégia 'media'
+```javascript
+// tailwind.config.js
+module.exports = {
+  darkMode: 'media',
+  // ...
+}
+```
+
+Esta estratégia:
+- Usa `@media (prefers-color-scheme: dark)`
+- Não requer JavaScript
+- Não funciona com alternância manual
+
+### Estratégia 'class'
+```javascript
+// tailwind.config.js
+module.exports = {
+  darkMode: 'class',
+  // ...
+}
+```
+
+Esta estratégia:
+- Usa classe `dark` no elemento raiz
+- Compatível com muitas bibliotecas
+- Pode causar flash inicial
+
+## 3. Classes Dark no Tailwind
+
+### Sintaxe Básica
+```tsx
+// Classes condicionais
+<div className="bg-white dark:bg-black">
+  <h1 className="text-black dark:text-white">
+    Título com dark mode
+  </h1>
+</div>
+```
+
+### Grupos de Modificadores
+```tsx
+// Aplica dark mode apenas no hover
+<button className="bg-blue-500 hover:dark:bg-blue-600">
+  Botão
+</button>
+
+// Combinação de modificadores
+<div className="dark:hover:bg-gray-800 focus:dark:bg-gray-700">
+  Elemento
+</div>
+```
+
+### Modificadores de Estado
+```tsx
+<input
+  className="
+    border border-gray-300 dark:border-gray-600
+    focus:border-blue-500 dark:focus:border-blue-400
+    bg-white dark:bg-gray-800
+    text-gray-900 dark:text-gray-100
+  "
+  placeholder="Campo de entrada"
+/>
+```
+
+## 4. Sistema de Cores com CSS Variables
+
+### Definição de Paleta
+```css
+/* Cores primárias */
+--color-primary-50: 240 249 255;
+--color-primary-100: 224 242 254;
+--color-primary-500: 59 130 246;
+--color-primary-900: 30 64 175;
+
+/* Cores neutras */
+--color-gray-50: 249 250 251;
+--color-gray-100: 243 244 246;
+--color-gray-500: 107 114 128;
+--color-gray-900: 17 24 39;
+
+/* Cores de fundo */
+--color-bg-light: 255 255 255;
+--color-bg-dark: 17 24 39;
+
+/* Cores de texto */
+--color-text-light: 17 24 39;
+--color-text-dark: 243 244 246;
+```
+
+### Uso no Tailwind
+```javascript
+// tailwind.config.js
+module.exports = {
+  theme: {
+    extend: {
+      colors: {
+        primary: {
+          50: 'hsl(var(--color-primary-50))',
+          100: 'hsl(var(--color-primary-100))',
+          500: 'hsl(var(--color-primary-500))',
+          900: 'hsl(var(--color-primary-900))',
+        },
+        gray: {
+          50: 'hsl(var(--color-gray-50))',
+          100: 'hsl(var(--color-gray-100))',
+          500: 'hsl(var(--color-gray-500))',
+          900: 'hsl(var(--color-gray-900))',
+        },
+        bg: {
+          light: 'hsl(var(--color-bg-light))',
+          dark: 'hsl(var(--color-bg-dark))',
+        },
+        text: {
+          light: 'hsl(var(--color-text-light))',
+          dark: 'hsl(var(--color-text-dark))',
+        },
+      },
+    },
+  },
+}
+```
+
+## 5. Componentes com Dark Mode
+
+### Card Component
+```tsx
+interface CardProps {
+  title: string
+  children: React.ReactNode
+}
+
+export function Card({ title, children }: CardProps) {
+  return (
+    <div className="
+      bg-white dark:bg-gray-800
+      border border-gray-200 dark:border-gray-700
+      rounded-lg shadow-sm dark:shadow-gray-900/20
+      p-6
+    ">
+      <h3 className="text-gray-900 dark:text-gray-100 font-semibold mb-4">
+        {title}
+      </h3>
+      <div className="text-gray-700 dark:text-gray-300">
+        {children}
+      </div>
+    </div>
+  )
+}
+```
+
+### Button Component
+```tsx
+interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+  variant?: 'primary' | 'secondary' | 'outline'
+  size?: 'sm' | 'md' | 'lg'
+}
+
+export function Button({
+  variant = 'primary',
+  size = 'md',
+  className,
+  children,
+  ...props
+}: ButtonProps) {
+  const baseClasses = "inline-flex items-center justify-center rounded-md font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none"
+
+  const variantClasses = {
+    primary: "bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white focus:ring-blue-500",
+    secondary: "bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100 focus:ring-gray-500",
+    outline: "border border-gray-300 dark:border-gray-600 bg-transparent hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300 focus:ring-gray-500"
+  }
+
+  const sizeClasses = {
+    sm: "h-8 px-3 text-sm",
+    md: "h-10 px-4 text-base",
+    lg: "h-12 px-6 text-lg"
+  }
+
+  return (
+    <button
+      className={cn(baseClasses, variantClasses[variant], sizeClasses[size], className)}
+      {...props}
+    >
+      {children}
+    </button>
+  )
+}
+```
+
+### Form Input
+```tsx
+interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
+  label?: string
+  error?: string
+}
+
+export function Input({ label, error, className, ...props }: InputProps) {
+  return (
+    <div className="space-y-1">
+      {label && (
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+          {label}
+        </label>
+      )}
+      <input
+        className={cn(
+          "block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:focus:ring-blue-400 dark:focus:border-blue-400 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100",
+          error && "border-red-300 dark:border-red-600 focus:ring-red-500 focus:border-red-500",
+          className
+        )}
+        {...props}
+      />
+      {error && (
+        <p className="text-sm text-red-600 dark:text-red-400">
+          {error}
+        </p>
+      )}
+    </div>
+  )
+}
+```
+
+## 6. Tema Condicional com Hook
+
+### Hook Customizado
+```tsx
+// hooks/use-theme-colors.ts
+import { useTheme } from 'next-themes'
+
+export function useThemeColors() {
+  const { resolvedTheme } = useTheme()
+
+  const colors = {
+    background: resolvedTheme === 'dark' ? '#1f2937' : '#ffffff',
+    foreground: resolvedTheme === 'dark' ? '#f9fafb' : '#111827',
+    primary: resolvedTheme === 'dark' ? '#3b82f6' : '#2563eb',
+    secondary: resolvedTheme === 'dark' ? '#6b7280' : '#9ca3af',
+  }
+
+  return colors
+}
+```
+
+### Uso do Hook
+```tsx
+import { useThemeColors } from '@/hooks/use-theme-colors'
+
+export function ThemedComponent() {
+  const colors = useThemeColors()
+
+  return (
+    <div
+      style={{
+        backgroundColor: colors.background,
+        color: colors.foreground
+      }}
+    >
+      <button
+        style={{ backgroundColor: colors.primary }}
+        onClick={handleClick}
+      >
+        Botão Primário
+      </button>
+    </div>
+  )
+}
+```
+
+## 7. Animações e Transições
+
+### Transições Suaves
+```tsx
+// Componente com transição suave
+<div className="
+  transition-colors duration-300 ease-in-out
+  bg-white dark:bg-gray-800
+  text-gray-900 dark:text-gray-100
+">
+  Conteúdo com transição
+</div>
+```
+
+### Desabilitar Transições
+```tsx
+// Para evitar conflitos durante mudança de tema
+<ThemeProvider disableTransitionOnChange>
+  <App />
+</ThemeProvider>
+```
+
+### Animações Customizadas
+```css
+/* Animação de fade suave */
+@keyframes theme-fade {
+  from { opacity: 0.8; }
+  to { opacity: 1; }
+}
+
+.theme-transition {
+  animation: theme-fade 0.3s ease-in-out;
+}
+```
+
+## 8. Testes de Dark Mode
+
+### Teste Manual
+```tsx
+// Componente de teste
+export function ThemeTester() {
+  const { theme, setTheme, resolvedTheme } = useTheme()
+
+  return (
+    <div className="fixed bottom-4 left-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-4 rounded-lg shadow-lg">
+      <h3 className="text-lg font-semibold mb-2 text-gray-900 dark:text-gray-100">
+        Teste de Tema
+      </h3>
+
+      <div className="space-y-2">
+        <p className="text-sm text-gray-600 dark:text-gray-400">
+          Tema atual: <strong>{theme}</strong>
+        </p>
+        <p className="text-sm text-gray-600 dark:text-gray-400">
+          Tema resolvido: <strong>{resolvedTheme}</strong>
+        </p>
+
+        <div className="flex gap-2">
+          <button
+            onClick={() => setTheme('light')}
+            className="px-3 py-1 bg-blue-500 text-white rounded text-sm hover:bg-blue-600"
+          >
+            Light
+          </button>
+          <button
+            onClick={() => setTheme('dark')}
+            className="px-3 py-1 bg-gray-700 text-white rounded text-sm hover:bg-gray-800"
+          >
+            Dark
+          </button>
+          <button
+            onClick={() => setTheme('system')}
+            className="px-3 py-1 bg-green-500 text-white rounded text-sm hover:bg-green-600"
+          >
+            System
+          </button>
+        </div>
+      </div>
+
+      {/* Elementos de teste visual */}
+      <div className="mt-4 space-y-2">
+        <div className="p-2 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded">
+          <p className="text-gray-900 dark:text-gray-100">Texto em fundo adaptável</p>
+        </div>
+
+        <div className="flex gap-2">
+          <button className="px-3 py-1 bg-blue-500 hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-700 text-white rounded text-sm">
+            Botão primário
+          </button>
+          <button className="px-3 py-1 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100 rounded text-sm">
+            Botão secundário
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+```
+
+## 9. Boas Práticas
+
+### 1. Use HSL para Cores
+```css
+/* ✅ Recomendado */
+--color-primary: 221.2 83.2% 53.3%;
+
+/* ❌ Evite */
+--color-primary: #3b82f6;
+```
+
+### 2. Teste Contraste
+```tsx
+// Verificar contraste adequado
+<div className="
+  text-gray-900 dark:text-gray-100
+  bg-white dark:bg-gray-900
+">
+  Texto com bom contraste
+</div>
+```
+
+### 3. Considere Acessibilidade
+```tsx
+// Botões com estados adequados
+<button className="
+  bg-blue-600 hover:bg-blue-700
+  dark:bg-blue-500 dark:hover:bg-blue-600
+  focus:ring-2 focus:ring-blue-500 focus:ring-offset-2
+  dark:focus:ring-blue-400 dark:focus:ring-offset-gray-900
+">
+  Botão acessível
+</button>
+```
+
+### 4. Performance
+```tsx
+// Evite cálculos desnecessários
+const { resolvedTheme } = useTheme()
+
+// ✅ Bom
+const bgColor = resolvedTheme === 'dark' ? 'bg-gray-900' : 'bg-white'
+
+// ❌ Ruim
+const bgColor = `bg-${resolvedTheme === 'dark' ? 'gray-900' : 'white'}`
+```
+
+## 10. Troubleshooting
+
+### Problemas Comuns
+
+#### Flash de Tema
+```tsx
+// Solução: Adicionar suppressHydrationWarning
+<html suppressHydrationWarning>
+  <body>
+    <ThemeProvider>{/* ... */}</ThemeProvider>
+  </body>
+</html>
+```
+
+#### Tema não Aplica
+```tsx
+// Verificar se o atributo está correto
+<ThemeProvider attribute="class">
+// ou
+<ThemeProvider attribute="data-theme">
+```
+
+#### CSS Variables não Funcionam
+```css
+/* Verificar ordem de importação */
+@import "tailwindcss"; /* Primeiro */
+@layer base {
+  :root { /* Depois */ }
+}
+```
+
+#### Transições Lentas
+```tsx
+// Desabilitar transições durante mudança
+<ThemeProvider disableTransitionOnChange>
+```
+
+## 11. Checklist de Implementação
+
+### Configuração Inicial
+- [ ] Tailwind CSS configurado com `darkMode: 'selector'`
+- [ ] CSS variables definidas para light e dark
+- [ ] next-themes instalado e configurado
+- [ ] ThemeProvider no layout raiz
+
+### Componentes
+- [ ] Pelo menos um componente com classes dark testado
+- [ ] Button component com variants dark
+- [ ] Form inputs com dark mode
+- [ ] Cards e containers com background adaptável
+
+### Testes
+- [ ] Testado no navegador com prefers-color-scheme: light
+- [ ] Testado no navegador com prefers-color-scheme: dark
+- [ ] Testado alternância manual de tema
+- [ ] Verificado em diferentes dispositivos
+
+### Performance
+- [ ] Sem flash de conteúdo não estilizado
+- [ ] Transições suaves entre temas
+- [ ] Bundle size otimizado
+- [ ] Hydration sem erros
+
+Esta implementação fornece uma base sólida para dark mode no wiki.ai.br, garantindo experiência consistente e acessível em todos os temas.
