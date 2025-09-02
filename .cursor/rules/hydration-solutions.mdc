@@ -1,0 +1,647 @@
+---
+globs: *.tsx,*.jsx,*.ts,*.js
+description: "Soluções completas para problemas de hydration mismatch em Next.js com next-themes"
+---
+
+# Soluções para Hydration Mismatch
+
+## Visão Geral
+
+Esta regra documenta soluções completas para problemas de hydration mismatch que ocorrem quando o servidor e cliente renderizam conteúdo diferente, especialmente em aplicações Next.js com next-themes.
+
+## 1. Entendendo Hydration Mismatch
+
+### O que é Hydration Mismatch?
+Hydration mismatch ocorre quando:
+- **Servidor**: Renderiza componente sem acesso a dados do navegador
+- **Cliente**: Renderiza componente com dados disponíveis no navegador
+- **Resultado**: Conteúdo diferente causa erro de hidratação
+
+### Sintomas Comuns
+```bash
+// Erro no console
+Warning: Expected server HTML to contain a matching <div> in <div>
+Warning: Did not expect server HTML to contain the text node...
+```
+
+### Casos Típicos com next-themes
+```tsx
+// ❌ Problema: theme é undefined no servidor
+const ThemeComponent = () => {
+  const { theme } = useTheme()
+  return <div>Tema atual: {theme}</div> // hydration mismatch
+}
+
+// ❌ Problema: localStorage não existe no servidor
+const StorageComponent = () => {
+  const [value, setValue] = useState(localStorage.getItem('key'))
+  return <div>{value}</div> // hydration mismatch
+}
+```
+
+## 2. Soluções Fundamentais
+
+### Solução 1: Aguarde Montagem no Cliente
+```tsx
+// ✅ Solução: Use mounted state
+'use client'
+
+import { useState, useEffect } from 'react'
+import { useTheme } from 'next-themes'
+
+const ThemeToggle = () => {
+  const [mounted, setMounted] = useState(false)
+  const { theme, setTheme } = useTheme()
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  if (!mounted) {
+    return <div className="w-8 h-8 bg-gray-200 animate-pulse rounded" />
+  }
+
+  return (
+    <button onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}>
+      {theme === 'light' ? '🌙' : '☀️'}
+    </button>
+  )
+}
+```
+
+### Solução 2: Use resolvedTheme
+```tsx
+// ✅ Solução: Use resolvedTheme para valores concretos
+import { useTheme } from 'next-themes'
+
+const ThemedDiv = () => {
+  const { resolvedTheme } = useTheme()
+
+  return (
+    <div style={{
+      backgroundColor: resolvedTheme === 'dark' ? '#000' : '#fff',
+      color: resolvedTheme === 'dark' ? '#fff' : '#000'
+    }}>
+      Conteúdo temático
+    </div>
+  )
+}
+```
+
+### Solução 3: Lazy Loading com dynamic
+```tsx
+// ✅ Solução: Lazy load componentes problemáticos
+import dynamic from 'next/dynamic'
+
+// Componente que usa localStorage ou tema
+const ThemeDependentComponent = dynamic(
+  () => import('./ThemeDependentComponent'),
+  {
+    ssr: false,
+    loading: () => <div>Loading...</div>
+  }
+)
+
+const Page = () => {
+  return (
+    <div>
+      <h1>Conteúdo normal</h1>
+      <ThemeDependentComponent />
+    </div>
+  )
+}
+```
+
+## 3. Padrões para Componentes Temáticos
+
+### Padrão 1: Theme Toggle Seguro
+```tsx
+// components/theme-toggle.tsx
+'use client'
+
+import { useState, useEffect } from 'react'
+import { useTheme } from 'next-themes'
+import { Moon, Sun } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+
+export function ThemeToggle() {
+  const [mounted, setMounted] = useState(false)
+  const { theme, setTheme } = useTheme()
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  const toggleTheme = () => {
+    setTheme(theme === 'light' ? 'dark' : 'light')
+  }
+
+  if (!mounted) {
+    return (
+      <Button variant="outline" size="icon" disabled>
+        <Sun className="h-[1.2rem] w-[1.2rem] opacity-50" />
+      </Button>
+    )
+  }
+
+  return (
+    <Button variant="outline" size="icon" onClick={toggleTheme}>
+      <Sun className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+      <Moon className="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+      <span className="sr-only">Alternar tema</span>
+    </Button>
+  )
+}
+```
+
+### Padrão 2: Componente com Fallback
+```tsx
+// components/theme-aware-component.tsx
+'use client'
+
+import { useState, useEffect } from 'react'
+import { useTheme } from 'next-themes'
+
+interface ThemeAwareProps {
+  children: (theme: string) => React.ReactNode
+  fallback?: React.ReactNode
+}
+
+export function ThemeAware({ children, fallback }: ThemeAwareProps) {
+  const [mounted, setMounted] = useState(false)
+  const { resolvedTheme } = useTheme()
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  if (!mounted) {
+    return fallback || <div>Loading...</div>
+  }
+
+  return <>{children(resolvedTheme || 'light')}</>
+}
+
+// Uso
+<ThemeAware fallback={<div>Carregando...</div>}>
+  {(theme) => (
+    <div className={theme === 'dark' ? 'bg-black text-white' : 'bg-white text-black'}>
+      Conteúdo baseado no tema: {theme}
+    </div>
+  )}
+</ThemeAware>
+```
+
+### Padrão 3: Hook Customizado
+```tsx
+// hooks/use-safe-theme.ts
+import { useState, useEffect } from 'react'
+import { useTheme } from 'next-themes'
+
+export function useSafeTheme() {
+  const [mounted, setMounted] = useState(false)
+  const theme = useTheme()
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  return {
+    ...theme,
+    mounted
+  }
+}
+
+// Uso
+const ThemeComponent = () => {
+  const { theme, setTheme, mounted } = useSafeTheme()
+
+  if (!mounted) {
+    return <div>Carregando tema...</div>
+  }
+
+  return (
+    <div>
+      <p>Tema atual: {theme}</p>
+      <button onClick={() => setTheme('dark')}>Tema escuro</button>
+    </div>
+  )
+}
+```
+
+## 4. Soluções para Conteúdo Dinâmico
+
+### Conteúdo Condicional sem Hydration Issues
+```tsx
+// ✅ Solução: Renderize sempre, oculte com CSS
+function ConditionalContent() {
+  return (
+    <>
+      {/* Sempre renderiza, mas oculta baseado no tema */}
+      <div data-hide-on-theme="dark">
+        <p>Este conteúdo aparece apenas no tema claro</p>
+      </div>
+
+      <div data-hide-on-theme="light">
+        <p>Este conteúdo aparece apenas no tema escuro</p>
+      </div>
+    </>
+  )
+}
+
+// CSS necessário
+// .css
+[data-theme='dark'] [data-hide-on-theme='dark'],
+[data-theme='light'] [data-hide-on-theme='light'] {
+  display: none;
+}
+```
+
+### Imagens Temáticas Seguras
+```tsx
+// components/themed-image.tsx
+'use client'
+
+import { useState, useEffect } from 'react'
+import { useTheme } from 'next-themes'
+import Image from 'next/image'
+
+export function ThemedImage({ lightSrc, darkSrc, alt, ...props }) {
+  const [mounted, setMounted] = useState(false)
+  const { resolvedTheme } = useTheme()
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  // Use placeholder até o tema ser determinado
+  const src = mounted
+    ? (resolvedTheme === 'dark' ? darkSrc : lightSrc)
+    : 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'
+
+  return <Image src={src} alt={alt} {...props} />
+}
+
+// Uso
+<ThemedImage
+  lightSrc="/logo-light.png"
+  darkSrc="/logo-dark.png"
+  alt="Logo Wiki AI"
+  width={200}
+  height={50}
+/>
+```
+
+## 5. Layout e suppressHydrationWarning
+
+### Uso Correto no Layout Raiz
+```tsx
+// app/layout.tsx
+export default function RootLayout({ children }) {
+  return (
+    <html suppressHydrationWarning>
+      <body>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          {children}
+        </ThemeProvider>
+      </body>
+    </html>
+  )
+}
+```
+
+### Quando Usar suppressHydrationWarning
+```tsx
+// ✅ Use quando:
+// - Componentes usam dados do navegador (localStorage, theme)
+// - Conteúdo muda baseado em preferências do usuário
+// - Scripts de terceiros afetam o DOM
+
+// ❌ Não use quando:
+// - Conteúdo é puramente estático
+// - Dados vêm apenas de props ou server
+// - Não há diferença server/client
+```
+
+## 6. Soluções Avançadas
+
+### Memoização para Performance
+```tsx
+// components/theme-aware-list.tsx
+'use client'
+
+import { useMemo, useState, useEffect } from 'react'
+import { useTheme } from 'next-themes'
+
+interface Item {
+  id: string
+  title: string
+  themeSpecificData: Record<string, any>
+}
+
+interface ThemeAwareListProps {
+  items: Item[]
+}
+
+export function ThemeAwareList({ items }: ThemeAwareListProps) {
+  const [mounted, setMounted] = useState(false)
+  const { resolvedTheme } = useTheme()
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  const themedItems = useMemo(() => {
+    if (!mounted) return items
+
+    return items.map(item => ({
+      ...item,
+      displayData: item.themeSpecificData[resolvedTheme] || item.themeSpecificData.light
+    }))
+  }, [items, resolvedTheme, mounted])
+
+  if (!mounted) {
+    return <div>Loading...</div>
+  }
+
+  return (
+    <ul>
+      {themedItems.map(item => (
+        <li key={item.id}>
+          {item.title}: {item.displayData}
+        </li>
+      ))}
+    </ul>
+  )
+}
+```
+
+### Context Provider Customizado
+```tsx
+// contexts/theme-context.tsx
+'use client'
+
+import { createContext, useContext, useState, useEffect } from 'react'
+import { useTheme } from 'next-themes'
+
+interface ThemeContextType {
+  mounted: boolean
+  theme: string | undefined
+  resolvedTheme: string | undefined
+  setTheme: (theme: string) => void
+}
+
+const ThemeContext = createContext<ThemeContextType | null>(null)
+
+export function ThemeProvider({ children }) {
+  const [mounted, setMounted] = useState(false)
+  const { theme, resolvedTheme, setTheme } = useTheme()
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  const value = {
+    mounted,
+    theme,
+    resolvedTheme,
+    setTheme
+  }
+
+  return (
+    <ThemeContext.Provider value={value}>
+      {children}
+    </ThemeContext.Provider>
+  )
+}
+
+export function useSafeTheme() {
+  const context = useContext(ThemeContext)
+  if (!context) {
+    throw new Error('useSafeTheme must be used within ThemeProvider')
+  }
+  return context
+}
+
+// Uso
+function MyComponent() {
+  const { mounted, theme, resolvedTheme } = useSafeTheme()
+
+  if (!mounted) {
+    return <div>Loading...</div>
+  }
+
+  return <div>Tema atual: {theme}</div>
+}
+```
+
+## 7. Debugging Hydration Issues
+
+### Componente de Debug
+```tsx
+// components/hydration-debug.tsx
+'use client'
+
+import { useState, useEffect } from 'react'
+
+export function HydrationDebug() {
+  const [isHydrated, setIsHydrated] = useState(false)
+  const [hasMismatch, setHasMismatch] = useState(false)
+
+  useEffect(() => {
+    setIsHydrated(true)
+
+    // Detectar mismatches
+    const handleError = (event) => {
+      if (event.message.includes('hydration')) {
+        setHasMismatch(true)
+      }
+    }
+
+    window.addEventListener('error', handleError)
+    return () => window.removeEventListener('error', handleError)
+  }, [])
+
+  if (process.env.NODE_ENV === 'production') {
+    return null
+  }
+
+  return (
+    <div className="fixed bottom-4 right-4 bg-black text-white p-2 rounded text-xs">
+      <div>Hydrated: {isHydrated ? '✅' : '❌'}</div>
+      {hasMismatch && <div className="text-red-400">Hydration Mismatch Detected!</div>}
+    </div>
+  )
+}
+```
+
+### Hook de Detecção
+```tsx
+// hooks/use-hydration-safe.ts
+import { useState, useEffect } from 'react'
+
+export function useHydrationSafe() {
+  const [hydrated, setHydrated] = useState(false)
+
+  useEffect(() => {
+    setHydrated(true)
+  }, [])
+
+  return hydrated
+}
+
+// Uso
+const SafeComponent = () => {
+  const hydrated = useHydrationSafe()
+
+  return hydrated ? <ActualContent /> : <LoadingSkeleton />
+}
+```
+
+## 8. Estratégias de Prevenção
+
+### 1. Server-Side Rendering Seguro
+```tsx
+// ✅ Bom: Dados que funcionam no servidor
+const StaticContent = ({ data }) => {
+  return <div>{data.title}</div> // data vem de props
+}
+
+// ❌ Ruim: Dados que só existem no cliente
+const ClientOnlyContent = () => {
+  const [data, setData] = useState(localStorage.getItem('key'))
+  return <div>{data}</div>
+}
+```
+
+### 2. Lazy Loading Estratégico
+```tsx
+// ✅ Bom: Lazy load apenas componentes problemáticos
+const ClientOnlySection = dynamic(() => import('./ClientOnlySection'), {
+  ssr: false,
+  loading: () => <div>Carregando...</div>
+})
+```
+
+### 3. Progressive Enhancement
+```tsx
+// ✅ Bom: Funciona sem JavaScript, aprimora com ele
+const EnhancedComponent = () => {
+  const [enhanced, setEnhanced] = useState(false)
+
+  useEffect(() => {
+    setEnhanced(true)
+  }, [])
+
+  return (
+    <div className={enhanced ? 'enhanced-styles' : 'basic-styles'}>
+      Conteúdo
+    </div>
+  )
+}
+```
+
+## 9. Checklist de Verificação
+
+### Antes de Deploy
+- [ ] Todos os componentes que usam `useTheme` têm verificação `mounted`
+- [ ] Nenhum componente renderiza `undefined` no servidor
+- [ ] `suppressHydrationWarning` usado apenas quando necessário
+- [ ] Testado em produção build (`npm run build && npm start`)
+- [ ] Verificado no modo desenvolvimento e produção
+- [ ] Testado com JavaScript desabilitado
+
+### Durante Desenvolvimento
+- [ ] Console limpo de erros de hidratação
+- [ ] Componentes de loading adequados
+- [ ] Performance não afetada por verificações de `mounted`
+- [ ] TypeScript types corretos para valores opcionais
+
+### Debugging
+- [ ] Componente de debug ativo em desenvolvimento
+- [ ] Logs adequados para detectar problemas
+- [ ] Testes automatizados para cenários críticos
+
+## 10. Casos Especiais
+
+### Third-Party Scripts
+```tsx
+// Solução para scripts que modificam DOM
+const ThirdPartyComponent = () => {
+  const [scriptLoaded, setScriptLoaded] = useState(false)
+
+  useEffect(() => {
+    // Carregar script apenas no cliente
+    const script = document.createElement('script')
+    script.src = '/third-party.js'
+    script.onload = () => setScriptLoaded(true)
+    document.head.appendChild(script)
+  }, [])
+
+  return scriptLoaded ? <ThirdPartyWidget /> : <div>Loading...</div>
+}
+```
+
+### Web APIs
+```tsx
+// Solução para APIs que não existem no servidor
+const GeolocationComponent = () => {
+  const [position, setPosition] = useState(null)
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(setPosition)
+    }
+  }, [])
+
+  if (!mounted) return <div>Loading location...</div>
+
+  return position ? (
+    <div>Latitude: {position.coords.latitude}</div>
+  ) : (
+    <div>Geolocation not available</div>
+  )
+}
+```
+
+### localStorage/sessionStorage
+```tsx
+// Solução para storage APIs
+const StorageComponent = () => {
+  const [value, setValue] = useState('')
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+    const stored = localStorage.getItem('key')
+    if (stored) setValue(stored)
+  }, [])
+
+  const saveValue = (newValue) => {
+    setValue(newValue)
+    if (mounted) {
+      localStorage.setItem('key', newValue)
+    }
+  }
+
+  if (!mounted) return <div>Loading...</div>
+
+  return (
+    <input
+      value={value}
+      onChange={(e) => saveValue(e.target.value)}
+      placeholder="Digite algo..."
+    />
+  )
+}
+```
+
+Seguindo estas soluções, você pode eliminar completamente os problemas de hydration mismatch no seu projeto Next.js com next-themes, garantindo uma experiência de usuário suave e consistente.

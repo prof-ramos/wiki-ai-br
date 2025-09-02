@@ -1,0 +1,1116 @@
+# Componentes de Tema Customizados
+
+## Visão Geral
+
+Esta regra documenta a criação e implementação de componentes de tema customizados para o projeto wiki.ai.br, fornecendo uma biblioteca reutilizável de componentes que se adaptam automaticamente ao tema ativo.
+
+## 1. Estrutura de Componentes
+
+### Organização de Arquivos
+```
+src/components/theme/
+├── theme-provider.tsx          # Provider principal do tema
+├── theme-toggle.tsx            # Botão de alternância de tema
+├── theme-aware.tsx             # Wrapper para componentes temáticos
+├── themed-card.tsx             # Card com tema automático
+├── themed-button.tsx           # Botão com tema automático
+├── themed-input.tsx            # Input com tema automático
+├── themed-modal.tsx            # Modal com tema automático
+├── themed-navigation.tsx       # Navegação com tema automático
+├── themed-layout.tsx           # Layout principal com tema
+├── theme-debug.tsx             # Componente de debug (dev only)
+└── index.ts                    # Exportações centralizadas
+```
+
+### Arquivo de Exportações
+```tsx
+// src/components/theme/index.ts
+export { ThemeProvider } from './theme-provider'
+export { ThemeToggle } from './theme-toggle'
+export { ThemeAware } from './theme-aware'
+export { ThemedCard } from './themed-card'
+export { ThemedButton } from './themed-button'
+export { ThemedInput } from './themed-input'
+export { ThemedModal } from './themed-modal'
+export { ThemedNavigation } from './themed-navigation'
+export { ThemedLayout } from './themed-layout'
+export { ThemeDebug } from './theme-debug'
+
+// Hooks
+export { useSafeTheme } from './hooks/use-safe-theme'
+export { useThemeColors } from './hooks/use-theme-colors'
+export { useThemeTransition } from './hooks/use-theme-transition'
+```
+
+## 2. Componentes Base
+
+### ThemeProvider Customizado
+```tsx
+// src/components/theme/theme-provider.tsx
+'use client'
+
+import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
+import { ThemeProvider as NextThemesProvider } from 'next-themes'
+
+interface ThemeContextType {
+  mounted: boolean
+  isTransitioning: boolean
+  theme: string | undefined
+  resolvedTheme: string | undefined
+  setTheme: (theme: string) => void
+}
+
+const ThemeContext = createContext<ThemeContextType | null>(null)
+
+interface CustomThemeProviderProps {
+  children: ReactNode
+  defaultTheme?: string
+  enableSystem?: boolean
+  disableTransitionOnChange?: boolean
+}
+
+export function CustomThemeProvider({
+  children,
+  defaultTheme = 'system',
+  enableSystem = true,
+  disableTransitionOnChange = false
+}: CustomThemeProviderProps) {
+  const [mounted, setMounted] = useState(false)
+  const [isTransitioning, setIsTransitioning] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  const handleThemeChange = (newTheme: string) => {
+    setIsTransitioning(true)
+    
+    // Simular transição
+    setTimeout(() => {
+      setIsTransitioning(false)
+    }, 300)
+  }
+
+  const value: ThemeContextType = {
+    mounted,
+    isTransitioning,
+    theme: undefined, // Será preenchido pelo next-themes
+    resolvedTheme: undefined,
+    setTheme: handleThemeChange
+  }
+
+  return (
+    <NextThemesProvider
+      attribute="class"
+      defaultTheme={defaultTheme}
+      enableSystem={enableSystem}
+      disableTransitionOnChange={disableTransitionOnChange}
+      onThemeChange={handleThemeChange}
+    >
+      <ThemeContext.Provider value={value}>
+        {children}
+      </ThemeContext.Provider>
+    </NextThemesProvider>
+  )
+}
+
+export function useCustomTheme() {
+  const context = useContext(ThemeContext)
+  if (!context) {
+    throw new Error('useCustomTheme must be used within CustomThemeProvider')
+  }
+  return context
+}
+```
+
+### ThemeToggle Avançado
+```tsx
+// src/components/theme/theme-toggle.tsx
+'use client'
+
+import { useState, useEffect } from 'react'
+import { useTheme } from 'next-themes'
+import { Button } from '@/components/ui/button'
+import { Moon, Sun, Monitor } from 'lucide-react'
+import { cn } from '@/lib/utils'
+
+interface ThemeToggleProps {
+  variant?: 'default' | 'outline' | 'ghost'
+  size?: 'sm' | 'md' | 'lg'
+  showLabels?: boolean
+  className?: string
+}
+
+export function ThemeToggle({
+  variant = 'outline',
+  size = 'md',
+  showLabels = false,
+  className
+}: ThemeToggleProps) {
+  const [mounted, setMounted] = useState(false)
+  const { theme, setTheme, resolvedTheme } = useTheme()
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  const toggleTheme = () => {
+    if (theme === 'system') {
+      setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')
+    } else {
+      setTheme(theme === 'light' ? 'dark' : 'light')
+    }
+  }
+
+  const cycleTheme = () => {
+    const themes = ['light', 'dark', 'system']
+    const currentIndex = themes.indexOf(theme || 'system')
+    const nextIndex = (currentIndex + 1) % themes.length
+    setTheme(themes[nextIndex])
+  }
+
+  if (!mounted) {
+    return (
+      <Button variant={variant} size={size} disabled className={className}>
+        <Sun className="h-4 w-4 animate-pulse" />
+      </Button>
+    )
+  }
+
+  return (
+    <div className="flex items-center gap-2">
+      <Button
+        variant={variant}
+        size={size}
+        onClick={toggleTheme}
+        className={cn(className)}
+        title="Alternar tema"
+      >
+        <Sun className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+        <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+        {showLabels && (
+          <span className="ml-2">
+            {resolvedTheme === 'dark' ? 'Escuro' : 'Claro'}
+          </span>
+        )}
+      </Button>
+
+      <Button
+        variant="ghost"
+        size={size}
+        onClick={cycleTheme}
+        className="px-2"
+        title="Ciclar temas"
+      >
+        <Monitor className="h-4 w-4" />
+      </Button>
+    </div>
+  )
+}
+```
+
+### ThemeAware Wrapper
+```tsx
+// src/components/theme/theme-aware.tsx
+'use client'
+
+import { useState, useEffect, ReactNode } from 'react'
+import { useTheme } from 'next-themes'
+
+interface ThemeAwareProps {
+  children: (theme: string) => ReactNode
+  fallback?: ReactNode
+  showLoading?: boolean
+  className?: string
+}
+
+export function ThemeAware({
+  children,
+  fallback,
+  showLoading = true,
+  className
+}: ThemeAwareProps) {
+  const [mounted, setMounted] = useState(false)
+  const { resolvedTheme } = useTheme()
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  if (!mounted) {
+    if (fallback) return <>{fallback}</>
+    if (showLoading) {
+      return (
+        <div className={cn("animate-pulse", className)}>
+          <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-24" />
+        </div>
+      )
+    }
+    return null
+  }
+
+  return <>{children(resolvedTheme || 'light')}</>
+}
+
+// Versão com renderização condicional
+interface ConditionalThemeAwareProps {
+  light: ReactNode
+  dark: ReactNode
+  fallback?: ReactNode
+}
+
+export function ConditionalThemeAware({
+  light,
+  dark,
+  fallback
+}: ConditionalThemeAwareProps) {
+  return (
+    <ThemeAware fallback={fallback}>
+      {(theme) => theme === 'dark' ? dark : light}
+    </ThemeAware>
+  )
+}
+```
+
+## 3. Componentes de Interface
+
+### ThemedCard
+```tsx
+// src/components/theme/themed-card.tsx
+'use client'
+
+import { ReactNode } from 'react'
+import { cn } from '@/lib/utils'
+import { ThemeAware } from './theme-aware'
+
+interface ThemedCardProps {
+  children: ReactNode
+  title?: string
+  subtitle?: string
+  variant?: 'default' | 'elevated' | 'outlined' | 'filled'
+  size?: 'sm' | 'md' | 'lg'
+  className?: string
+  headerActions?: ReactNode
+  footerActions?: ReactNode
+}
+
+export function ThemedCard({
+  children,
+  title,
+  subtitle,
+  variant = 'default',
+  size = 'md',
+  className,
+  headerActions,
+  footerActions
+}: ThemedCardProps) {
+  const variantClasses = {
+    default: "bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700",
+    elevated: "bg-white dark:bg-gray-800 shadow-lg dark:shadow-gray-900/20",
+    outlined: "bg-transparent border-2 border-gray-200 dark:border-gray-700",
+    filled: "bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700"
+  }
+
+  const sizeClasses = {
+    sm: "p-4",
+    md: "p-6",
+    lg: "p-8"
+  }
+
+  return (
+    <div className={cn(
+      "rounded-lg transition-colors duration-200",
+      variantClasses[variant],
+      sizeClasses[size],
+      className
+    )}>
+      {(title || subtitle || headerActions) && (
+        <div className="flex items-start justify-between mb-4">
+          <div>
+            {title && (
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                {title}
+              </h3>
+            )}
+            {subtitle && (
+              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                {subtitle}
+              </p>
+            )}
+          </div>
+          {headerActions && (
+            <div className="flex items-center gap-2">
+              {headerActions}
+            </div>
+          )}
+        </div>
+      )}
+
+      <div className="text-gray-700 dark:text-gray-300">
+        {children}
+      </div>
+
+      {footerActions && (
+        <div className="flex items-center justify-end gap-2 mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+          {footerActions}
+        </div>
+      )}
+    </div>
+  )
+}
+```
+
+### ThemedButton
+```tsx
+// src/components/theme/themed-button.tsx
+'use client'
+
+import { ButtonHTMLAttributes, ReactNode } from 'react'
+import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
+
+interface ThemedButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+  children: ReactNode
+  variant?: 'primary' | 'secondary' | 'success' | 'warning' | 'danger' | 'outline' | 'ghost'
+  size?: 'sm' | 'md' | 'lg'
+  loading?: boolean
+  icon?: ReactNode
+  iconPosition?: 'left' | 'right'
+  className?: string
+}
+
+export function ThemedButton({
+  children,
+  variant = 'primary',
+  size = 'md',
+  loading = false,
+  icon,
+  iconPosition = 'left',
+  className,
+  disabled,
+  ...props
+}: ThemedButtonProps) {
+  const variantClasses = {
+    primary: "bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white focus:ring-blue-500",
+    secondary: "bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100 focus:ring-gray-500",
+    success: "bg-green-600 hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600 text-white focus:ring-green-500",
+    warning: "bg-yellow-600 hover:bg-yellow-700 dark:bg-yellow-500 dark:hover:bg-yellow-600 text-white focus:ring-yellow-500",
+    danger: "bg-red-600 hover:bg-red-700 dark:bg-red-500 dark:hover:bg-red-600 text-white focus:ring-red-500",
+    outline: "border border-gray-300 dark:border-gray-600 bg-transparent hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300 focus:ring-gray-500",
+    ghost: "bg-transparent hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300 focus:ring-gray-500"
+  }
+
+  const sizeClasses = {
+    sm: "h-8 px-3 text-sm",
+    md: "h-10 px-4 text-base",
+    lg: "h-12 px-6 text-lg"
+  }
+
+  const isDisabled = disabled || loading
+
+  return (
+    <Button
+      className={cn(
+        variantClasses[variant],
+        sizeClasses[size],
+        "transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-gray-900",
+        isDisabled && "opacity-50 cursor-not-allowed",
+        className
+      )}
+      disabled={isDisabled}
+      {...props}
+    >
+      {loading && (
+        <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+      )}
+      
+      {icon && iconPosition === 'left' && !loading && (
+        <span className="mr-2">{icon}</span>
+      )}
+      
+      {children}
+      
+      {icon && iconPosition === 'right' && !loading && (
+        <span className="ml-2">{icon}</span>
+      )}
+    </Button>
+  )
+}
+```
+
+### ThemedInput
+```tsx
+// src/components/theme/themed-input.tsx
+'use client'
+
+import { InputHTMLAttributes, ReactNode, forwardRef } from 'react'
+import { cn } from '@/lib/utils'
+import { Input } from '@/components/ui/input'
+
+interface ThemedInputProps extends InputHTMLAttributes<HTMLInputElement> {
+  label?: string
+  description?: string
+  error?: string
+  leftIcon?: ReactNode
+  rightIcon?: ReactNode
+  variant?: 'default' | 'filled' | 'outlined'
+  size?: 'sm' | 'md' | 'lg'
+  className?: string
+  containerClassName?: string
+}
+
+export const ThemedInput = forwardRef<HTMLInputElement, ThemedInputProps>(({
+  label,
+  description,
+  error,
+  leftIcon,
+  rightIcon,
+  variant = 'default',
+  size = 'md',
+  className,
+  containerClassName,
+  ...props
+}, ref) => {
+  const variantClasses = {
+    default: "bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 focus:border-blue-500 dark:focus:border-blue-400",
+    filled: "bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 focus:border-blue-500 dark:focus:border-blue-400",
+    outlined: "bg-transparent border-2 border-gray-300 dark:border-gray-600 focus:border-blue-500 dark:focus:border-blue-400"
+  }
+
+  const sizeClasses = {
+    sm: "h-8 px-3 text-sm",
+    md: "h-10 px-4 text-base",
+    lg: "h-12 px-6 text-lg"
+  }
+
+  return (
+    <div className={cn("space-y-2", containerClassName)}>
+      {label && (
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+          {label}
+        </label>
+      )}
+      
+      <div className="relative">
+        {leftIcon && (
+          <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500">
+            {leftIcon}
+          </div>
+        )}
+        
+        <Input
+          ref={ref}
+          className={cn(
+            variantClasses[variant],
+            sizeClasses[size],
+            "transition-colors duration-200 placeholder-gray-400 dark:placeholder-gray-500 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:ring-offset-2 dark:focus:ring-offset-gray-900",
+            leftIcon && "pl-10",
+            rightIcon && "pr-10",
+            error && "border-red-300 dark:border-red-600 focus:border-red-500 dark:focus:border-red-400 focus:ring-red-500 dark:focus:ring-red-400",
+            className
+          )}
+          {...props}
+        />
+        
+        {rightIcon && (
+          <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500">
+            {rightIcon}
+          </div>
+        )}
+      </div>
+      
+      {description && (
+        <p className="text-sm text-gray-500 dark:text-gray-400">
+          {description}
+        </p>
+      )}
+      
+      {error && (
+        <p className="text-sm text-red-600 dark:text-red-400">
+          {error}
+        </p>
+      )}
+    </div>
+  )
+})
+
+ThemedInput.displayName = 'ThemedInput'
+```
+
+## 4. Componentes de Layout
+
+### ThemedLayout
+```tsx
+// src/components/theme/themed-layout.tsx
+'use client'
+
+import { ReactNode } from 'react'
+import { cn } from '@/lib/utils'
+import { ThemeToggle } from './theme-toggle'
+
+interface ThemedLayoutProps {
+  children: ReactNode
+  header?: ReactNode
+  sidebar?: ReactNode
+  footer?: ReactNode
+  className?: string
+  showThemeToggle?: boolean
+  themeTogglePosition?: 'header' | 'sidebar' | 'footer'
+}
+
+export function ThemedLayout({
+  children,
+  header,
+  sidebar,
+  footer,
+  className,
+  showThemeToggle = true,
+  themeTogglePosition = 'header'
+}: ThemedLayoutProps) {
+  const renderThemeToggle = () => {
+    if (!showThemeToggle) return null
+    
+    return (
+      <div className="flex items-center justify-center">
+        <ThemeToggle variant="ghost" size="sm" />
+      </div>
+    )
+  }
+
+  return (
+    <div className={cn(
+      "min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200",
+      className
+    )}>
+      {/* Header */}
+      {header && (
+        <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-sm">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex items-center justify-between h-16">
+              <div className="flex items-center">
+                {header}
+              </div>
+              {themeTogglePosition === 'header' && renderThemeToggle()}
+            </div>
+          </div>
+        </header>
+      )}
+
+      <div className="flex flex-1">
+        {/* Sidebar */}
+        {sidebar && (
+          <aside className="w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700">
+            <div className="p-4">
+              {sidebar}
+              {themeTogglePosition === 'sidebar' && (
+                <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                  {renderThemeToggle()}
+                </div>
+              )}
+            </div>
+          </aside>
+        )}
+
+        {/* Main Content */}
+        <main className="flex-1">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            {children}
+          </div>
+        </main>
+      </div>
+
+      {/* Footer */}
+      {footer && (
+        <footer className="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <div className="flex items-center justify-between">
+              <div>{footer}</div>
+              {themeTogglePosition === 'footer' && renderThemeToggle()}
+            </div>
+          </div>
+        </footer>
+      )}
+    </div>
+  )
+}
+```
+
+### ThemedNavigation
+```tsx
+// src/components/theme/themed-navigation.tsx
+'use client'
+
+import { useState } from 'react'
+import { cn } from '@/lib/utils'
+import { Menu, X } from 'lucide-react'
+import { ThemeToggle } from './theme-toggle'
+
+interface NavigationItem {
+  label: string
+  href: string
+  icon?: React.ReactNode
+  children?: NavigationItem[]
+}
+
+interface ThemedNavigationProps {
+  items: NavigationItem[]
+  logo?: React.ReactNode
+  className?: string
+  showThemeToggle?: boolean
+  mobileMenu?: boolean
+}
+
+export function ThemedNavigation({
+  items,
+  logo,
+  className,
+  showThemeToggle = true,
+  mobileMenu = true
+}: ThemedNavigationProps) {
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+
+  const toggleMobileMenu = () => {
+    setIsMobileMenuOpen(!isMobileMenuOpen)
+  }
+
+  const renderNavigationItems = (navItems: NavigationItem[], isMobile = false) => {
+    return (
+      <div className={cn(
+        isMobile ? "space-y-2" : "flex items-center space-x-8"
+      )}>
+        {navItems.map((item, index) => (
+          <div key={index} className="relative group">
+            <a
+              href={item.href}
+              className={cn(
+                "text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors duration-200",
+                isMobile ? "block py-2" : "flex items-center space-x-1"
+              )}
+            >
+              {item.icon && <span className="mr-2">{item.icon}</span>}
+              {item.label}
+            </a>
+            
+            {item.children && (
+              <div className={cn(
+                "absolute z-10 mt-2 w-48 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200",
+                isMobile && "relative mt-2 ml-4 w-auto border-l-2 border-gray-200 dark:border-gray-700 pl-4"
+              )}>
+                {renderNavigationItems(item.children, isMobile)}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    )
+  }
+
+  return (
+    <nav className={cn(
+      "bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700",
+      className
+    )}>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between h-16">
+          {/* Logo */}
+          {logo && (
+            <div className="flex-shrink-0">
+              {logo}
+            </div>
+          )}
+
+          {/* Desktop Navigation */}
+          <div className="hidden md:block">
+            {renderNavigationItems(items)}
+          </div>
+
+          {/* Right side */}
+          <div className="flex items-center space-x-4">
+            {showThemeToggle && <ThemeToggle />}
+            
+            {mobileMenu && (
+              <button
+                onClick={toggleMobileMenu}
+                className="md:hidden p-2 rounded-md text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700"
+              >
+                {isMobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Mobile Navigation */}
+        {mobileMenu && isMobileMenuOpen && (
+          <div className="md:hidden py-4 border-t border-gray-200 dark:border-gray-700">
+            {renderNavigationItems(items, true)}
+          </div>
+        )}
+      </div>
+    </nav>
+  )
+}
+```
+
+## 5. Hooks Customizados
+
+### useSafeTheme
+```tsx
+// src/components/theme/hooks/use-safe-theme.ts
+import { useState, useEffect } from 'react'
+import { useTheme } from 'next-themes'
+
+export function useSafeTheme() {
+  const [mounted, setMounted] = useState(false)
+  const theme = useTheme()
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  return {
+    ...theme,
+    mounted,
+    isReady: mounted && theme.theme !== undefined
+  }
+}
+```
+
+### useThemeColors
+```tsx
+// src/components/theme/hooks/use-theme-colors.ts
+import { useMemo } from 'react'
+import { useSafeTheme } from './use-safe-theme'
+
+export function useThemeColors() {
+  const { resolvedTheme, mounted } = useSafeTheme()
+
+  const colors = useMemo(() => {
+    if (!mounted) {
+      return {
+        background: '#ffffff',
+        foreground: '#000000',
+        primary: '#3b82f6',
+        secondary: '#6b7280',
+        border: '#e5e7eb',
+        muted: '#f3f4f6'
+      }
+    }
+
+    return resolvedTheme === 'dark' ? {
+      background: '#1f2937',
+      foreground: '#f9fafb',
+      primary: '#3b82f6',
+      secondary: '#6b7280',
+      border: '#374151',
+      muted: '#111827'
+    } : {
+      background: '#ffffff',
+      foreground: '#000000',
+      primary: '#3b82f6',
+      secondary: '#6b7280',
+      border: '#e5e7eb',
+      muted: '#f3f4f6'
+    }
+  }, [resolvedTheme, mounted])
+
+  return colors
+}
+```
+
+### useThemeTransition
+```tsx
+// src/components/theme/hooks/use-theme-transition.ts
+import { useState, useEffect } from 'react'
+import { useSafeTheme } from './use-safe-theme'
+
+export function useThemeTransition() {
+  const { mounted, theme } = useSafeTheme()
+  const [isTransitioning, setIsTransitioning] = useState(false)
+  const [previousTheme, setPreviousTheme] = useState<string | undefined>()
+
+  useEffect(() => {
+    if (mounted && theme !== previousTheme && previousTheme !== undefined) {
+      setIsTransitioning(true)
+      
+      const timer = setTimeout(() => {
+        setIsTransitioning(false)
+      }, 300)
+
+      return () => clearTimeout(timer)
+    }
+
+    setPreviousTheme(theme)
+  }, [theme, mounted, previousTheme])
+
+  return {
+    isTransitioning,
+    canTransition: mounted && !isTransitioning
+  }
+}
+```
+
+## 6. Componente de Debug
+
+### ThemeDebug
+```tsx
+// src/components/theme/theme-debug.tsx
+'use client'
+
+import { useState, useEffect } from 'react'
+import { useTheme } from 'next-themes'
+import { ThemedCard } from './themed-card'
+import { ThemedButton } from './themed-button'
+
+export function ThemeDebug() {
+  const [isVisible, setIsVisible] = useState(false)
+  const [hasMismatch, setHasMismatch] = useState(false)
+  const { theme, resolvedTheme, systemTheme, forcedTheme, themes } = useTheme()
+
+  useEffect(() => {
+    // Detectar hydration mismatches
+    const handleError = (event: ErrorEvent) => {
+      if (event.message.includes('hydration')) {
+        setHasMismatch(true)
+      }
+    }
+
+    window.addEventListener('error', handleError)
+    return () => window.removeEventListener('error', handleError)
+  }, [])
+
+  // Só mostrar em desenvolvimento
+  if (process.env.NODE_ENV === 'production') {
+    return null
+  }
+
+  if (!isVisible) {
+    return (
+      <button
+        onClick={() => setIsVisible(true)}
+        className="fixed bottom-4 right-4 bg-blue-600 text-white p-2 rounded-full shadow-lg hover:bg-blue-700 transition-colors"
+        title="Mostrar debug do tema"
+      >
+        🐛
+      </button>
+    )
+  }
+
+  return (
+    <div className="fixed bottom-4 right-4 w-80 max-h-96 overflow-y-auto">
+      <ThemedCard
+        title="Debug do Tema"
+        variant="elevated"
+        className="shadow-2xl"
+        headerActions={
+          <ThemedButton
+            variant="ghost"
+            size="sm"
+            onClick={() => setIsVisible(false)}
+            className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+          >
+            ✕
+          </ThemedButton>
+        }
+      >
+        <div className="space-y-3 text-sm">
+          <div className="grid grid-cols-2 gap-2">
+            <div className="font-medium">Tema:</div>
+            <div className="text-gray-600 dark:text-gray-400">{theme || 'undefined'}</div>
+            
+            <div className="font-medium">Resolvido:</div>
+            <div className="text-gray-600 dark:text-gray-400">{resolvedTheme || 'undefined'}</div>
+            
+            <div className="font-medium">Sistema:</div>
+            <div className="text-gray-600 dark:text-gray-400">{systemTheme || 'undefined'}</div>
+            
+            <div className="font-medium">Forçado:</div>
+            <div className="text-gray-600 dark:text-gray-400">{forcedTheme || 'não'}</div>
+          </div>
+
+          <div>
+            <div className="font-medium mb-1">Temas disponíveis:</div>
+            <div className="flex flex-wrap gap-1">
+              {themes.map((t) => (
+                <span
+                  key={t}
+                  className={cn(
+                    "px-2 py-1 rounded text-xs",
+                    t === theme
+                      ? "bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200"
+                      : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400"
+                  )}
+                >
+                  {t}
+                </span>
+              ))}
+            </div>
+          </div>
+
+          {hasMismatch && (
+            <div className="p-2 bg-red-100 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded text-red-700 dark:text-red-400">
+              ⚠️ Hydration mismatch detectado!
+            </div>
+          )}
+
+          <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
+            <ThemedButton
+              variant="outline"
+              size="sm"
+              onClick={() => window.location.reload()}
+              className="w-full"
+            >
+              Recarregar página
+            </ThemedButton>
+          </div>
+        </div>
+      </ThemedCard>
+    </div>
+  )
+}
+```
+
+## 7. Uso dos Componentes
+
+### Exemplo de Página
+```tsx
+// src/app/page.tsx
+import { ThemedLayout } from '@/components/theme/themed-layout'
+import { ThemedCard } from '@/components/theme/themed-card'
+import { ThemedButton } from '@/components/theme/themed-button'
+import { ThemedInput } from '@/components/theme/themed-input'
+import { ThemeAware } from '@/components/theme/theme-aware'
+
+export default function HomePage() {
+  return (
+    <ThemedLayout
+      header={<h1 className="text-xl font-bold">Wiki AI Brasil</h1>}
+      showThemeToggle
+      themeTogglePosition="header"
+    >
+      <div className="space-y-6">
+        <ThemedCard
+          title="Bem-vindo ao Wiki AI"
+          subtitle="Sua fonte de conhecimento sobre Inteligência Artificial"
+          variant="elevated"
+        >
+          <p className="mb-4">
+            Explore artigos, tutoriais e recursos sobre IA em português.
+          </p>
+          
+          <div className="flex gap-2">
+            <ThemedButton variant="primary">
+              Começar a explorar
+            </ThemedButton>
+            <ThemedButton variant="outline">
+              Sobre o projeto
+            </ThemedButton>
+          </div>
+        </ThemedCard>
+
+        <ThemedCard title="Pesquisar">
+          <ThemedInput
+            placeholder="Digite sua pesquisa..."
+            leftIcon="🔍"
+            variant="filled"
+          />
+        </ThemedCard>
+
+        <ThemeAware>
+          {(theme) => (
+            <ThemedCard
+              title={`Conteúdo do tema: ${theme}`}
+              variant={theme === 'dark' ? 'filled' : 'outlined'}
+            >
+              <p>Este card se adapta ao tema ativo.</p>
+            </ThemedCard>
+          )}
+        </ThemeAware>
+      </div>
+    </ThemedLayout>
+  )
+}
+```
+
+## 8. Boas Práticas
+
+### 1. Sempre Use Verificação de Montagem
+```tsx
+// ✅ Correto
+const [mounted, setMounted] = useState(false)
+useEffect(() => setMounted(true), [])
+
+if (!mounted) return <LoadingSkeleton />
+
+// ❌ Incorreto
+const { theme } = useTheme()
+return <div>{theme}</div> // Pode ser undefined
+```
+
+### 2. Prefira resolvedTheme para Valores Concretos
+```tsx
+// ✅ Bom para valores que precisam ser light/dark
+const { resolvedTheme } = useTheme()
+const bgColor = resolvedTheme === 'dark' ? 'bg-black' : 'bg-white'
+
+// ✅ Bom para valores que podem ser 'system'
+const { theme } = useTheme()
+const themeLabel = theme === 'system' ? 'Automático' : theme
+```
+
+### 3. Use CSS Variables para Cores Complexas
+```css
+/* ✅ Bom: CSS variables para cores complexas */
+:root {
+  --gradient-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.dark {
+  --gradient-primary: linear-gradient(135deg, #4c1d95 0%, #7c3aed 100%);
+}
+```
+
+### 4. Teste em Diferentes Cenários
+- [ ] Tema claro
+- [ ] Tema escuro
+- [ ] Tema do sistema
+- [ ] JavaScript desabilitado
+- [ ] Diferentes navegadores
+- [ ] Dispositivos móveis
+
+## 9. Checklist de Implementação
+
+### Componentes Base
+- [ ] ThemeProvider customizado
+- [ ] ThemeToggle funcional
+- [ ] ThemeAware wrapper
+- [ ] Hooks customizados
+
+### Componentes de Interface
+- [ ] ThemedCard com variants
+- [ ] ThemedButton com estados
+- [ ] ThemedInput com validação
+- [ ] ThemedModal responsivo
+
+### Componentes de Layout
+- [ ] ThemedLayout principal
+- [ ] ThemedNavigation
+- [ ] Sidebar temática
+- [ ] Footer adaptativo
+
+### Funcionalidades
+- [ ] Transições suaves
+- [ ] Estados de loading
+- [ ] Tratamento de erros
+- [ ] Debug em desenvolvimento
+
+### Testes
+- [ ] Hydration sem erros
+- [ ] Performance adequada
+- [ ] Acessibilidade (WCAG)
+- [ ] Responsividade
+
+Esta implementação fornece uma base sólida e reutilizável para componentes de tema no wiki.ai.br, garantindo consistência visual e experiência de usuário otimizada em todos os temas.
+description:
+globs:
+alwaysApply: true
+---

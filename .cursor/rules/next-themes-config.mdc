@@ -1,0 +1,476 @@
+---
+globs: app/layout.tsx,pages/_app.tsx,*.tsx,*.jsx
+description: "Configuração completa do next-themes para implementação de dark mode no Next.js"
+---
+
+# Configuração Completa do next-themes
+
+## Visão Geral
+
+Esta regra documenta a configuração completa do `next-themes` para implementação de dark mode no projeto wiki.ai.br, baseado na documentação oficial e melhores práticas.
+
+## 1. Instalação
+
+### Comando de Instalação
+```bash
+npm install next-themes
+# ou
+yarn add next-themes
+```
+
+## 2. Configuração Básica
+
+### App Router (Recomendado)
+```tsx
+// app/layout.tsx
+import { ThemeProvider } from 'next-themes'
+
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
+  return (
+    <html lang="pt-BR" suppressHydrationWarning>
+      <body>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          {children}
+        </ThemeProvider>
+      </body>
+    </html>
+  )
+}
+```
+
+### Pages Router (Legacy)
+```tsx
+// pages/_app.tsx
+import { ThemeProvider } from 'next-themes'
+
+function MyApp({ Component, pageProps }) {
+  return (
+    <ThemeProvider
+      attribute="class"
+      defaultTheme="system"
+      enableSystem
+      disableTransitionOnChange
+    >
+      <Component {...pageProps} />
+    </ThemeProvider>
+  )
+}
+
+export default MyApp
+```
+
+## 3. Configuração do Tailwind CSS
+
+### tailwind.config.js
+```javascript
+/** @type {import('tailwindcss').Config} */
+module.exports = {
+  darkMode: 'selector',
+  content: [
+    './src/pages/**/*.{js,ts,jsx,tsx,mdx}',
+    './src/components/**/*.{js,ts,jsx,tsx,mdx}',
+    './src/app/**/*.{js,ts,jsx,tsx,mdx}',
+  ],
+  theme: {
+    extend: {
+      // ... outras configurações
+    },
+  },
+  plugins: [],
+}
+```
+
+### Uso das Classes Dark
+```tsx
+// Exemplo de componente com dark mode
+export function Card() {
+  return (
+    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 p-4">
+      <h3 className="text-gray-900 dark:text-white">Título do Card</h3>
+      <p className="text-gray-600 dark:text-gray-300">Conteúdo do card</p>
+    </div>
+  )
+}
+```
+
+## 4. Hook useTheme
+
+### Uso Básico
+```tsx
+import { useTheme } from 'next-themes'
+
+export function ThemeToggle() {
+  const { theme, setTheme } = useTheme()
+
+  return (
+    <div>
+      <p>Tema atual: {theme}</p>
+      <button onClick={() => setTheme('light')}>Claro</button>
+      <button onClick={() => setTheme('dark')}>Escuro</button>
+      <button onClick={() => setTheme('system')}>Sistema</button>
+    </div>
+  )
+}
+```
+
+### Propriedades do Hook
+```tsx
+const {
+  theme,              // Tema atual ('light', 'dark', 'system')
+  setTheme,          // Função para alterar tema
+  forcedTheme,       // Tema forçado (se definido)
+  resolvedTheme,     // Tema resolvido ('light' ou 'dark')
+  systemTheme,       // Preferência do sistema
+  themes             // Lista de temas disponíveis
+} = useTheme()
+```
+
+## 5. Componente Theme Toggle Seguro
+
+### Solução para Hydration Mismatch
+```tsx
+// components/theme-toggle.tsx
+'use client'
+
+import { useState, useEffect } from 'react'
+import { useTheme } from 'next-themes'
+import { Moon, Sun } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+
+export function ThemeToggle() {
+  const [mounted, setMounted] = useState(false)
+  const { theme, setTheme } = useTheme()
+
+  // Só renderiza após montar no cliente
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  if (!mounted) {
+    return (
+      <Button variant="outline" size="icon" disabled>
+        <Sun className="h-[1.2rem] w-[1.2rem]" />
+      </Button>
+    )
+  }
+
+  return (
+    <Button
+      variant="outline"
+      size="icon"
+      onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
+    >
+      <Sun className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+      <Moon className="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+      <span className="sr-only">Alternar tema</span>
+    </Button>
+  )
+}
+```
+
+## 6. Tema Forçado por Página
+
+### Forçar Tema em Página Específica
+```tsx
+// pages/artigo-especial.tsx
+const ArtigoEspecial = () => {
+  return <div>Conteúdo com tema específico</div>
+}
+
+// Força tema dark nesta página
+ArtigoEspecial.theme = 'dark'
+
+export default ArtigoEspecial
+```
+
+### Configuração no App Router
+```tsx
+// app/layout.tsx
+export default function Layout({ children }) {
+  const router = useRouter()
+  const forcedTheme = router.pathname === '/artigo-especial' ? 'dark' : null
+
+  return (
+    <ThemeProvider forcedTheme={forcedTheme}>
+      {children}
+    </ThemeProvider>
+  )
+}
+```
+
+## 7. Temas Customizados
+
+### Definir Temas Personalizados
+```tsx
+// app/layout.tsx
+<ThemeProvider
+  themes={['light', 'dark', 'blue', 'green']}
+  defaultTheme="light"
+>
+  {children}
+</ThemeProvider>
+```
+
+### Mapear Valores de Atributo
+```tsx
+// Para usar data-theme customizado
+<ThemeProvider
+  attribute="data-mode"
+  value={{
+    light: 'claro',
+    dark: 'escuro',
+    blue: 'azul-theme'
+  }}
+>
+  {children}
+</ThemeProvider>
+```
+
+## 8. Integração com CSS Variables
+
+### CSS com Variáveis
+```css
+/* app/globals.css */
+:root {
+  --background: white;
+  --foreground: black;
+  --primary: #0070f3;
+}
+
+[data-theme='dark'] {
+  --background: black;
+  --foreground: white;
+  --primary: #00aaff;
+}
+
+[data-theme='blue'] {
+  --background: #e6f3ff;
+  --foreground: #003366;
+  --primary: #0066cc;
+}
+```
+
+### Uso no Tailwind
+```javascript
+// tailwind.config.js
+module.exports = {
+  theme: {
+    extend: {
+      colors: {
+        background: 'var(--background)',
+        foreground: 'var(--foreground)',
+        primary: 'var(--primary)',
+      }
+    }
+  }
+}
+```
+
+## 9. Componentes com Tema Condicional
+
+### Imagens Temáticas
+```tsx
+import Image from 'next/image'
+import { useTheme } from 'next-themes'
+
+export function ThemedImage() {
+  const { resolvedTheme } = useTheme()
+
+  const imageSrc = resolvedTheme === 'dark'
+    ? '/logo-dark.png'
+    : '/logo-light.png'
+
+  return (
+    <Image
+      src={imageSrc}
+      alt="Logo"
+      width={200}
+      height={50}
+    />
+  )
+}
+```
+
+### Conteúdo Condicional
+```tsx
+import { useTheme } from 'next-themes'
+
+export function ConditionalContent() {
+  const { resolvedTheme } = useTheme()
+
+  return (
+    <>
+      {/* Sempre renderiza ambos, mas oculta via CSS */}
+      <div data-hide-on-theme="dark">
+        <p>Este conteúdo aparece apenas no tema claro</p>
+      </div>
+
+      <div data-hide-on-theme="light">
+        <p>Este conteúdo aparece apenas no tema escuro</p>
+      </div>
+    </>
+  )
+}
+```
+
+### CSS para Ocultar Conteúdo
+```css
+[data-theme='dark'] [data-hide-on-theme='dark'],
+[data-theme='light'] [data-hide-on-theme='light'] {
+  display: none;
+}
+```
+
+## 10. Configurações Avançadas
+
+### ThemeProvider API Completa
+```tsx
+<ThemeProvider
+  // Storage
+  storageKey="theme"                    // Key no localStorage
+  defaultTheme="system"                 // Tema padrão
+
+  // Sistema
+  enableSystem={true}                   // Suporte a prefers-color-scheme
+  enableColorScheme={true}              // Indica scheme ao browser
+
+  // Controle
+  forcedTheme={undefined}               // Força tema específico
+  disableTransitionOnChange={false}     // Desabilita transições
+
+  // Temas
+  themes={['light', 'dark']}           // Lista de temas disponíveis
+
+  // DOM
+  attribute="data-theme"               // Atributo HTML ('class' ou 'data-*')
+  value={undefined}                    // Mapeamento tema -> valor
+
+  // Segurança
+  nonce={undefined}                    // Nonce para CSP
+  scriptProps={undefined}              // Props do script injetado
+>
+```
+
+### Configurações por Ambiente
+```tsx
+// Para desenvolvimento
+const isDevelopment = process.env.NODE_ENV === 'development'
+
+<ThemeProvider
+  defaultTheme={isDevelopment ? 'light' : 'system'}
+  enableSystem={!isDevelopment}
+  disableTransitionOnChange={!isDevelopment}
+/>
+```
+
+## 11. Debugging e Troubleshooting
+
+### Verificar Estado do Tema
+```tsx
+// Componente de debug
+import { useTheme } from 'next-themes'
+
+export function ThemeDebug() {
+  const {
+    theme,
+    resolvedTheme,
+    systemTheme,
+    forcedTheme,
+    themes
+  } = useTheme()
+
+  return (
+    <div className="fixed bottom-4 right-4 bg-black text-white p-4 rounded">
+      <h3>Debug Tema:</h3>
+      <p>Theme: {theme}</p>
+      <p>Resolved: {resolvedTheme}</p>
+      <p>System: {systemTheme}</p>
+      <p>Forced: {forcedTheme}</p>
+      <p>Themes: {JSON.stringify(themes)}</p>
+    </div>
+  )
+}
+```
+
+### Problemas Comuns
+
+#### Hydration Mismatch
+```tsx
+// ❌ Errado - causa hydration mismatch
+const ThemeComponent = () => {
+  const { theme } = useTheme()
+  return <div>Tema: {theme}</div> // theme é undefined no server
+}
+
+// ✅ Correto - aguarda montagem
+const ThemeComponent = () => {
+  const [mounted, setMounted] = useState(false)
+  const { theme } = useTheme()
+
+  useEffect(() => setMounted(true), [])
+
+  if (!mounted) return <div>Loading...</div>
+
+  return <div>Tema: {theme}</div>
+}
+```
+
+#### Transições Lentas
+```tsx
+// Desabilitar transições durante mudança de tema
+<ThemeProvider disableTransitionOnChange>
+```
+
+#### Tema não Persiste
+```tsx
+// Verificar storageKey
+<ThemeProvider storageKey="my-app-theme">
+```
+
+## 12. Boas Práticas
+
+### 1. Sempre Use suppressHydrationWarning
+```tsx
+// No layout raiz quando usar next-themes
+<html suppressHydrationWarning>
+```
+
+### 2. Prefira resolvedTheme sobre theme
+```tsx
+// Para valores concretos (light/dark)
+const { resolvedTheme } = useTheme()
+
+// Para valores incluindo 'system'
+const { theme } = useTheme()
+```
+
+### 3. Teste em Diferentes Cenários
+- [ ] Navegador com prefers-color-scheme: light
+- [ ] Navegador com prefers-color-scheme: dark
+- [ ] localStorage vazio
+- [ ] localStorage com tema salvo
+- [ ] Tema forçado por página
+
+### 4. Documente Temas Customizados
+```tsx
+// Tipos para temas customizados
+type Theme = 'light' | 'dark' | 'blue' | 'green'
+
+interface ThemeConfig {
+  light: { bg: string; fg: string }
+  dark: { bg: string; fg: string }
+  blue: { bg: string; fg: string }
+  green: { bg: string; fg: string }
+}
+```
+
+Esta configuração fornece uma base sólida para implementação de dark mode no wiki.ai.br, seguindo todas as melhores práticas da documentação oficial do next-themes.

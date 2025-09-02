@@ -1,0 +1,279 @@
+---
+alwaysApply: false
+description: "Padrões de desenvolvimento, melhores práticas e convenções do projeto wiki.ai.br"
+---
+
+# Padrões de Desenvolvimento
+
+## Princípios Gerais
+
+### Qualidade de Código
+- **TypeScript obrigatório**: Todos os componentes devem ser tipados
+- **Linting rigoroso**: Use ESLint com regras strict
+- **Formatação consistente**: Prettier para padronização
+- **Testes**: Componentes críticos devem ter testes
+
+### Performance
+- **Lazy loading**: Componentes pesados com `React.lazy()`
+- **Image optimization**: Sempre use `next/image`
+- **Bundle splitting**: Separe chunks por rotas
+- **Memoização**: Use `React.memo()`, `useMemo()`, `useCallback()` quando apropriado
+
+## Estrutura de Componentes
+
+### Padrão de Componentes Funcionais
+```tsx
+import React from 'react'
+import { cn } from '@/lib/utils'
+
+interface ComponentProps {
+  title: string
+  children?: React.ReactNode
+  className?: string
+}
+
+export function ComponentName({
+  title,
+  children,
+  className
+}: ComponentProps) {
+  return (
+    <div className={cn('base-styles', className)}>
+      <h2>{title}</h2>
+      {children}
+    </div>
+  )
+}
+```
+
+### Convenções de Nomenclatura
+- **Componentes**: PascalCase (`ArticleCard`, `NavigationMenu`)
+- **Arquivos**: PascalCase com extensão (`ArticleCard.tsx`)
+- **Props**: camelCase (`articleTitle`, `isActive`)
+- **Funções**: camelCase (`handleSubmit`, `formatDate`)
+- **Constantes**: UPPER_SNAKE_CASE (`SITE_CONFIG`, `API_ENDPOINTS`)
+
+## Padrões de Estado
+
+### Local State (useState)
+```tsx
+const [isOpen, setIsOpen] = useState(false)
+const [searchQuery, setSearchQuery] = useState('')
+```
+
+### Server State (React Query)
+```tsx
+import { useQuery } from '@tanstack/react-query'
+
+const { data: articles, isLoading } = useQuery({
+  queryKey: ['articles'],
+  queryFn: fetchArticles,
+})
+```
+
+### Form State (React Hook Form + Zod)
+```tsx
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { z } from 'zod'
+
+const schema = z.object({
+  email: z.string().email(),
+  password: z.string().min(8),
+})
+
+function LoginForm() {
+  const form = useForm({
+    resolver: zodResolver(schema),
+  })
+}
+```
+
+## Padrões de Estilização
+
+### Tailwind CSS + ShadCN
+```tsx
+import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
+
+export function CustomButton({ variant = 'default', className, ...props }) {
+  return (
+    <Button
+      variant={variant}
+      className={cn(
+        'custom-styles',
+        variant === 'primary' && 'bg-blue-600 hover:bg-blue-700',
+        className
+      )}
+      {...props}
+    />
+  )
+}
+```
+
+### CSS Modules (quando necessário)
+```tsx
+// component.module.css
+.container {
+  @apply p-4 rounded-lg;
+}
+
+.title {
+  @apply text-xl font-bold;
+}
+
+// component.tsx
+import styles from './component.module.css'
+
+export function Component() {
+  return (
+    <div className={styles.container}>
+      <h1 className={styles.title}>Título</h1>
+    </div>
+  )
+}
+```
+
+## Padrões de Conteúdo
+
+### Estrutura de Artigos MDX
+```mdx
+---
+title: "Guia Completo de Prompt Engineering"
+description: "Aprenda técnicas avançadas de criação de prompts"
+date: "2024-01-15"
+---
+
+import { Callout } from '@/components/ui/callout'
+
+# Guia Completo de Prompt Engineering
+
+<Callout type="info">
+  Este artigo aborda técnicas avançadas de prompt engineering.
+</Callout>
+
+## Introdução
+
+Conteúdo explicativo...
+
+## Técnicas Principais
+
+### 1. Zero-shot Prompting
+
+```prompt
+Classifique este texto como positivo ou negativo:
+"Adorei o novo design do site!"
+```
+
+### 2. Few-shot Prompting
+
+```prompt
+Exemplos de saudações:
+- Olá, como vai? → Formal
+- E aí, beleza? → Informal
+
+Classifique: "Bom dia, tudo bem?"
+```
+
+## Conclusão
+
+Resumo dos pontos principais...
+```
+
+## Padrões de API
+
+### Fetching com React Query
+```tsx
+// lib/api/articles.ts
+export async function fetchArticles() {
+  const response = await fetch('/api/articles')
+  if (!response.ok) {
+    throw new Error('Failed to fetch articles')
+  }
+  return response.json()
+}
+
+// components/ArticlesList.tsx
+import { useQuery } from '@tanstack/react-query'
+import { fetchArticles } from '@/lib/api/articles'
+
+export function ArticlesList() {
+  const {
+    data: articles,
+    isLoading,
+    error,
+    refetch
+  } = useQuery({
+    queryKey: ['articles'],
+    queryFn: fetchArticles,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  })
+
+  if (isLoading) return <div>Loading...</div>
+  if (error) return <div>Error: {error.message}</div>
+
+  return (
+    <div>
+      {articles?.map(article => (
+        <ArticleCard key={article.id} article={article} />
+      ))}
+    </div>
+  )
+}
+```
+
+## Padrões de Testes
+
+### Component Testing (Testing Library)
+```tsx
+// __tests__/ArticleCard.test.tsx
+import { render, screen } from '@testing-library/react'
+import { ArticleCard } from '@/components/ArticleCard'
+
+const mockArticle = {
+  id: '1',
+  title: 'Test Article',
+  description: 'Test description',
+}
+
+describe('ArticleCard', () => {
+  it('renders article title and description', () => {
+    render(<ArticleCard article={mockArticle} />)
+
+    expect(screen.getByText('Test Article')).toBeInTheDocument()
+    expect(screen.getByText('Test description')).toBeInTheDocument()
+  })
+})
+```
+
+## Padrões de Commit
+
+### Conventional Commits
+```
+feat: add search functionality
+fix: resolve mobile navigation bug
+docs: update README with new features
+style: format code with prettier
+refactor: optimize article fetching logic
+test: add unit tests for ArticleCard component
+```
+
+## Code Review Guidelines
+
+### Critérios de Aprovação
+- ✅ Código funciona conforme especificado
+- ✅ Testes adequados (cobertura > 80%)
+- ✅ TypeScript sem erros
+- ✅ Linting passa sem warnings
+- ✅ Performance não regrediu
+- ✅ Acessibilidade mantida
+- ✅ Documentação atualizada
+
+### Checklist de Revisão
+- [ ] Arquivos seguem convenções de nomenclatura
+- [ ] Componentes são reutilizáveis
+- [ ] Estado é gerenciado adequadamente
+- [ ] Erros são tratados gracefulmente
+- [ ] Código está bem comentado
+- [ ] Não há código duplicado
+- [ ] Bundle size não aumentou significativamente

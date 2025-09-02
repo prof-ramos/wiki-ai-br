@@ -1,0 +1,152 @@
+---
+globs: package.json,*.config.*,tsconfig.json,*.json
+description: "Configurações específicas do projeto wiki.ai.br e suas dependências"
+---
+
+# Configurações do Projeto
+
+## Stack Tecnológico
+O projeto wiki.ai.br utiliza a seguinte stack moderna:
+
+### Core Framework
+- **Next.js**: Framework React com App Router
+- **React 18+**: Biblioteca base para interfaces
+- **TypeScript**: Type safety obrigatório
+
+### UI e Estilização
+- **ShadCN UI**: Componentes base acessíveis e customizáveis
+- **Tailwind CSS**: Framework CSS utilitário
+- **Radix UI**: Primitivos acessíveis (base do ShadCN)
+
+### Conteúdo e Markdown
+- **MDX**: Markdown com JSX para conteúdo dinâmico
+- **Next.js Contentlayer**: Sistema de conteúdo tipado
+
+## Arquivos de Configuração
+
+### package.json
+```json
+{
+  "name": "wiki-ai-br",
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "next": "^14.0.0",
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0",
+    "@shadcn/ui": "^latest",
+    "tailwindcss": "^3.3.0",
+    "mdx": "^latest"
+  }
+}
+```
+
+### tailwind.config.js
+```javascript
+/** @type {import('tailwindcss').Config} */
+module.exports = {
+  content: [
+    './src/pages/**/*.{js,ts,jsx,tsx,mdx}',
+    './src/components/**/*.{js,ts,jsx,tsx,mdx}',
+    './src/app/**/*.{js,ts,jsx,tsx,mdx}',
+  ],
+  theme: {
+    extend: {
+      colors: {
+        // Cores customizadas do wiki.ai.br
+        primary: '#1a365d',
+        secondary: '#2d3748',
+        accent: '#3182ce'
+      }
+    },
+  },
+  plugins: [],
+}
+```
+
+### next.config.js
+```javascript
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  experimental: {
+    mdxRs: true,
+  },
+  images: {
+    domains: ['localhost'],
+  },
+}
+
+module.exports = nextConfig
+```
+
+## Estrutura de Pastas Recomendada
+```
+src/
+  app/                 # App Router (Next.js 13+)
+    layout.tsx        # Layout raiz
+    page.tsx          # Página inicial
+    globals.css       # Estilos globais
+  components/          # Componentes reutilizáveis
+    ui/               # Componentes ShadCN
+  content/            # Artigos MDX
+  lib/                # Utilitários e configurações
+    utils.ts          # Funções utilitárias
+  styles/             # Estilos adicionais
+```
+
+## Dependências Essenciais
+Instale sempre nesta ordem:
+
+1. **Core**: `next`, `react`, `react-dom`
+2. **TypeScript**: `typescript`, `@types/node`, `@types/react`
+3. **Styling**: `tailwindcss`, `autoprefixer`, `postcss`
+4. **UI**: Todos os componentes do ShadCN UI
+5. **Content**: `mdx`, `@next/mdx`, `contentlayer`
+
+## Scripts de Desenvolvimento
+- `npm run dev`: Servidor de desenvolvimento
+- `npm run build`: Build de produção
+- `npm run start`: Servidor de produção
+- `npm run lint`: Linting com ESLint
+- `npm run type-check`: Verificação de tipos
+
+## Variáveis de Ambiente
+Crie um arquivo `.env.local`:
+
+```env
+NEXT_PUBLIC_SITE_URL=http://localhost:3000
+NEXT_PUBLIC_SITE_NAME="wiki.ai.br"
+```
+
+## Configuração do Contentlayer
+Para MDX tipado, configure o `contentlayer.config.ts`:
+
+```typescript
+import { defineDocumentType, makeSource } from 'contentlayer/source-files'
+
+const Post = defineDocumentType(() => ({
+  name: 'Post',
+  filePathPattern: `**/*.mdx`,
+  fields: {
+    title: { type: 'string', required: true },
+    description: { type: 'string', required: true },
+    date: { type: 'date', required: true },
+  },
+  computedFields: {
+    url: {
+      type: 'string',
+      resolve: (post) => `/posts/${post._raw.flattenedPath}`,
+    },
+  },
+}))
+
+export default makeSource({
+  contentDirPath: 'posts',
+  documentTypes: [Post],
+})
+```

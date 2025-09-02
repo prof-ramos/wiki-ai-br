@@ -1,0 +1,955 @@
+# Integração ShadCN UI + Componentes de Tema
+
+## Visão Geral
+
+Esta regra documenta como integrar efetivamente os componentes de tema customizados com o ShadCN UI, criando uma experiência visual consistente e reutilizável no projeto wiki.ai.br.
+
+## 1. Arquitetura de Integração
+
+### Estrutura de Camadas
+```
+┌─────────────────────────────────────┐
+│           Páginas/App               │
+├─────────────────────────────────────┤
+│      Componentes de Tema           │
+│      (theme-components)            │
+├─────────────────────────────────────┤
+│         ShadCN UI                  │
+│      (components/ui)               │
+├─────────────────────────────────────┤
+│         Tailwind CSS               │
+│      (dark mode + variables)       │
+└─────────────────────────────────────┘
+```
+
+### Princípios de Integração
+1. **Composição sobre Herança**: Use ShadCN como base, tema como wrapper
+2. **Consistência Visual**: Mantenha padrões de design unificados
+3. **Reutilização**: Componentes de tema devem ser agnósticos ao ShadCN
+4. **Flexibilidade**: Permita customização sem quebrar a base
+
+## 2. Padrões de Composição
+
+### Padrão 1: Wrapper de Tema
+```tsx
+// src/components/theme/themed-shadcn-wrapper.tsx
+'use client'
+
+import { ReactNode } from 'react'
+import { cn } from '@/lib/utils'
+import { useSafeTheme } from './hooks/use-safe-theme'
+
+interface ThemedShadcnWrapperProps {
+  children: ReactNode
+  className?: string
+  variant?: 'default' | 'elevated' | 'outlined'
+  size?: 'sm' | 'md' | 'lg'
+}
+
+export function ThemedShadcnWrapper({
+  children,
+  className,
+  variant = 'default',
+  size = 'md'
+}: ThemedShadcnWrapperProps) {
+  const { resolvedTheme, mounted } = useSafeTheme()
+
+  if (!mounted) {
+    return <div className="animate-pulse bg-gray-200 dark:bg-gray-700 rounded">{children}</div>
+  }
+
+  const themeClasses = {
+    default: "bg-background border border-border",
+    elevated: "bg-background shadow-lg dark:shadow-gray-900/20",
+    outlined: "bg-transparent border-2 border-border"
+  }
+
+  const sizeClasses = {
+    sm: "p-3",
+    md: "p-4",
+    lg: "p-6"
+  }
+
+  return (
+    <div className={cn(
+      "rounded-lg transition-colors duration-200",
+      themeClasses[variant],
+      sizeClasses[size],
+      className
+    )}>
+      {children}
+    </div>
+  )
+}
+```
+
+### Padrão 2: Componente Híbrido
+```tsx
+// src/components/theme/themed-shadcn-card.tsx
+'use client'
+
+import { ReactNode } from 'react'
+import { cn } from '@/lib/utils'
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
+import { useSafeTheme } from './hooks/use-safe-theme'
+
+interface ThemedShadcnCardProps {
+  children: ReactNode
+  title?: string
+  description?: string
+  footer?: ReactNode
+  variant?: 'default' | 'elevated' | 'outlined'
+  className?: string
+}
+
+export function ThemedShadcnCard({
+  children,
+  title,
+  description,
+  footer,
+  variant = 'default',
+  className
+}: ThemedShadcnCardProps) {
+  const { resolvedTheme, mounted } = useSafeTheme()
+
+  const variantClasses = {
+    default: "",
+    elevated: "shadow-lg dark:shadow-gray-900/20",
+    outlined: "border-2"
+  }
+
+  if (!mounted) {
+    return (
+      <Card className={cn("animate-pulse", variantClasses[variant], className)}>
+        <CardHeader>
+          <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4" />
+          <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-1/2" />
+        </CardHeader>
+        <CardContent>
+          <div className="h-20 bg-gray-200 dark:bg-gray-700 rounded" />
+        </CardContent>
+      </Card>
+    )
+  }
+
+  return (
+    <Card className={cn(
+      "transition-colors duration-200",
+      variantClasses[variant],
+      className
+    )}>
+      {(title || description) && (
+        <CardHeader>
+          {title && <CardTitle>{title}</CardTitle>}
+          {description && <CardDescription>{description}</CardDescription>}
+        </CardHeader>
+      )}
+      <CardContent>{children}</CardContent>
+      {footer && <CardFooter>{footer}</CardFooter>}
+    </Card>
+  )
+}
+```
+
+### Padrão 3: Hook de Integração
+```tsx
+// src/components/theme/hooks/use-shadcn-theme.ts
+import { useMemo } from 'react'
+import { useSafeTheme } from './use-safe-theme'
+
+export function useShadcnTheme() {
+  const { resolvedTheme, mounted } = useSafeTheme()
+
+  const themeConfig = useMemo(() => {
+    if (!mounted) {
+      return {
+        colors: {
+          background: 'bg-background',
+          foreground: 'text-foreground',
+          primary: 'bg-primary text-primary-foreground',
+          secondary: 'bg-secondary text-secondary-foreground',
+          muted: 'bg-muted text-muted-foreground',
+          accent: 'bg-accent text-accent-foreground'
+        },
+        variants: {
+          default: 'bg-background border border-border',
+          destructive: 'bg-destructive text-destructive-foreground',
+          outline: 'border border-input bg-background hover:bg-accent hover:text-accent-foreground'
+        }
+      }
+    }
+
+    // Configurações específicas por tema
+    return resolvedTheme === 'dark' ? {
+      colors: {
+        background: 'bg-gray-900',
+        foreground: 'text-gray-100',
+        primary: 'bg-blue-600 text-white hover:bg-blue-700',
+        secondary: 'bg-gray-700 text-gray-100 hover:bg-gray-600',
+        muted: 'bg-gray-800 text-gray-400',
+        accent: 'bg-gray-700 text-gray-100 hover:bg-gray-600'
+      },
+      variants: {
+        default: 'bg-gray-900 border border-gray-700',
+        destructive: 'bg-red-600 text-white hover:bg-red-700',
+        outline: 'border border-gray-600 bg-gray-900 hover:bg-gray-800 hover:text-gray-100'
+      }
+    } : {
+      colors: {
+        background: 'bg-white',
+        foreground: 'text-gray-900',
+        primary: 'bg-blue-600 text-white hover:bg-blue-700',
+        secondary: 'bg-gray-200 text-gray-900 hover:bg-gray-300',
+        muted: 'bg-gray-100 text-gray-600',
+        accent: 'bg-gray-100 text-gray-900 hover:bg-gray-200'
+      },
+      variants: {
+        default: 'bg-white border border-gray-200',
+        destructive: 'bg-red-600 text-white hover:bg-red-700',
+        outline: 'border border-gray-300 bg-white hover:bg-gray-50 hover:text-gray-900'
+      }
+    }
+  }, [resolvedTheme, mounted])
+
+  return {
+    theme: resolvedTheme,
+    mounted,
+    config: themeConfig
+  }
+}
+```
+
+## 3. Componentes Integrados
+
+### ThemedShadcnButton
+```tsx
+// src/components/theme/themed-shadcn-button.tsx
+'use client'
+
+import { ButtonHTMLAttributes, ReactNode } from 'react'
+import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
+import { useShadcnTheme } from './hooks/use-shadcn-theme'
+
+interface ThemedShadcnButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+  children: ReactNode
+  variant?: 'default' | 'destructive' | 'outline' | 'secondary' | 'ghost' | 'link'
+  size?: 'default' | 'sm' | 'lg' | 'icon'
+  loading?: boolean
+  icon?: ReactNode
+  iconPosition?: 'left' | 'right'
+  className?: string
+}
+
+export function ThemedShadcnButton({
+  children,
+  variant = 'default',
+  size = 'default',
+  loading = false,
+  icon,
+  iconPosition = 'left',
+  className,
+  disabled,
+  ...props
+}: ThemedShadcnButtonProps) {
+  const { config, mounted } = useShadcnTheme()
+
+  if (!mounted) {
+    return (
+      <Button variant={variant} size={size} disabled className={className}>
+        <div className="h-4 w-4 animate-pulse bg-current opacity-50 rounded" />
+      </Button>
+    )
+  }
+
+  const isDisabled = disabled || loading
+
+  return (
+    <Button
+      variant={variant}
+      size={size}
+      className={cn(
+        "transition-all duration-200",
+        isDisabled && "opacity-50 cursor-not-allowed",
+        className
+      )}
+      disabled={isDisabled}
+      {...props}
+    >
+      {loading && (
+        <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+      )}
+      
+      {icon && iconPosition === 'left' && !loading && (
+        <span className="mr-2">{icon}</span>
+      )}
+      
+      {children}
+      
+      {icon && iconPosition === 'right' && !loading && (
+        <span className="ml-2">{icon}</span>
+      )}
+    </Button>
+  )
+}
+```
+
+### ThemedShadcnInput
+```tsx
+// src/components/theme/themed-shadcn-input.tsx
+'use client'
+
+import { InputHTMLAttributes, ReactNode, forwardRef } from 'react'
+import { cn } from '@/lib/utils'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { useShadcnTheme } from './hooks/use-shadcn-theme'
+
+interface ThemedShadcnInputProps extends InputHTMLAttributes<HTMLInputElement> {
+  label?: string
+  description?: string
+  error?: string
+  leftIcon?: ReactNode
+  rightIcon?: ReactNode
+  variant?: 'default' | 'filled' | 'outlined'
+  size?: 'sm' | 'default' | 'lg'
+  className?: string
+  containerClassName?: string
+}
+
+export const ThemedShadcnInput = forwardRef<HTMLInputElement, ThemedShadcnInputProps>(({
+  label,
+  description,
+  error,
+  leftIcon,
+  rightIcon,
+  variant = 'default',
+  size = 'default',
+  className,
+  containerClassName,
+  ...props
+}, ref) => {
+  const { config, mounted } = useShadcnTheme()
+
+  const variantClasses = {
+    default: "bg-background border border-input",
+    filled: "bg-muted border border-input",
+    outlined: "bg-transparent border-2 border-input"
+  }
+
+  const sizeClasses = {
+    sm: "h-8 px-3 text-sm",
+    default: "h-10 px-4",
+    lg: "h-12 px-6 text-lg"
+  }
+
+  if (!mounted) {
+    return (
+      <div className={cn("space-y-2", containerClassName)}>
+        {label && (
+          <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-20 animate-pulse" />
+        )}
+        <div className="h-10 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+      </div>
+    )
+  }
+
+  return (
+    <div className={cn("space-y-2", containerClassName)}>
+      {label && (
+        <Label className="text-sm font-medium">
+          {label}
+        </Label>
+      )}
+      
+      <div className="relative">
+        {leftIcon && (
+          <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground">
+            {leftIcon}
+          </div>
+        )}
+        
+        <Input
+          ref={ref}
+          className={cn(
+            variantClasses[variant],
+            sizeClasses[size],
+            "transition-colors duration-200 placeholder:text-muted-foreground focus:ring-2 focus:ring-ring focus:ring-offset-2 dark:focus:ring-offset-background",
+            leftIcon && "pl-10",
+            rightIcon && "pr-10",
+            error && "border-destructive focus:border-destructive focus:ring-destructive",
+            className
+          )}
+          {...props}
+        />
+        
+        {rightIcon && (
+          <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground">
+            {rightIcon}
+          </div>
+        )}
+      </div>
+      
+      {description && (
+        <p className="text-sm text-muted-foreground">
+          {description}
+        </p>
+      )}
+      
+      {error && (
+        <p className="text-sm text-destructive">
+          {error}
+        </p>
+      )}
+    </div>
+  )
+})
+
+ThemedShadcnInput.displayName = 'ThemedShadcnInput'
+```
+
+### ThemedShadcnDialog
+```tsx
+// src/components/theme/themed-shadcn-dialog.tsx
+'use client'
+
+import { ReactNode } from 'react'
+import { cn } from '@/lib/utils'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog'
+import { useSafeTheme } from './hooks/use-safe-theme'
+
+interface ThemedShadcnDialogProps {
+  children: ReactNode
+  trigger?: ReactNode
+  title?: string
+  description?: string
+  footer?: ReactNode
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
+  className?: string
+}
+
+export function ThemedShadcnDialog({
+  children,
+  trigger,
+  title,
+  description,
+  footer,
+  open,
+  onOpenChange,
+  className
+}: ThemedShadcnDialogProps) {
+  const { mounted } = useSafeTheme()
+
+  if (!mounted) {
+    return trigger || <div className="animate-pulse bg-gray-200 dark:bg-gray-700 rounded w-20 h-10" />
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      {trigger && <DialogTrigger asChild>{trigger}</DialogTrigger>}
+      <DialogContent className={cn(
+        "transition-colors duration-200",
+        className
+      )}>
+        {(title || description) && (
+          <DialogHeader>
+            {title && <DialogTitle>{title}</DialogTitle>}
+            {description && <DialogDescription>{description}</DialogDescription>}
+          </DialogHeader>
+        )}
+        
+        <div className="py-4">
+          {children}
+        </div>
+        
+        {footer && (
+          <DialogFooter>
+            {footer}
+          </DialogFooter>
+        )}
+      </DialogContent>
+    </Dialog>
+  )
+}
+```
+
+## 4. Layouts Integrados
+
+### ThemedShadcnLayout
+```tsx
+// src/components/theme/themed-shadcn-layout.tsx
+'use client'
+
+import { ReactNode } from 'react'
+import { cn } from '@/lib/utils'
+import { ThemeToggle } from './theme-toggle'
+import { useShadcnTheme } from './hooks/use-shadcn-theme'
+
+interface ThemedShadcnLayoutProps {
+  children: ReactNode
+  header?: ReactNode
+  sidebar?: ReactNode
+  footer?: ReactNode
+  className?: string
+  showThemeToggle?: boolean
+  themeTogglePosition?: 'header' | 'sidebar' | 'footer'
+}
+
+export function ThemedShadcnLayout({
+  children,
+  header,
+  sidebar,
+  footer,
+  className,
+  showThemeToggle = true,
+  themeTogglePosition = 'header'
+}: ThemedShadcnLayoutProps) {
+  const { config, mounted } = useShadcnTheme()
+
+  const renderThemeToggle = () => {
+    if (!showThemeToggle) return null
+    
+    return (
+      <div className="flex items-center justify-center">
+        <ThemeToggle variant="ghost" size="sm" />
+      </div>
+    )
+  }
+
+  if (!mounted) {
+    return (
+      <div className="min-h-screen bg-background animate-pulse">
+        <div className="h-16 bg-muted" />
+        <div className="flex">
+          {sidebar && <div className="w-64 h-screen bg-muted" />}
+          <div className="flex-1 p-8">
+            <div className="space-y-4">
+              <div className="h-8 bg-muted rounded w-1/4" />
+              <div className="h-32 bg-muted rounded" />
+              <div className="h-32 bg-muted rounded" />
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className={cn(
+      "min-h-screen bg-background transition-colors duration-200",
+      className
+    )}>
+      {/* Header */}
+      {header && (
+        <header className="bg-card border-b border-border shadow-sm">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex items-center justify-between h-16">
+              <div className="flex items-center">
+                {header}
+              </div>
+              {themeTogglePosition === 'header' && renderThemeToggle()}
+            </div>
+          </div>
+        </header>
+      )}
+
+      <div className="flex flex-1">
+        {/* Sidebar */}
+        {sidebar && (
+          <aside className="w-64 bg-card border-r border-border">
+            <div className="p-4">
+              {sidebar}
+              {themeTogglePosition === 'sidebar' && (
+                <div className="mt-4 pt-4 border-t border-border">
+                  {renderThemeToggle()}
+                </div>
+              )}
+            </div>
+          </aside>
+        )}
+
+        {/* Main Content */}
+        <main className="flex-1">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            {children}
+          </div>
+        </main>
+      </div>
+
+      {/* Footer */}
+      {footer && (
+        <footer className="bg-card border-t border-border">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <div className="flex items-center justify-between">
+              <div>{footer}</div>
+              {themeTogglePosition === 'footer' && renderThemeToggle()}
+            </div>
+          </div>
+        </footer>
+      )}
+    </div>
+  )
+}
+```
+
+## 5. Exemplos de Uso Integrado
+
+### Página com Componentes Integrados
+```tsx
+// src/app/dashboard/page.tsx
+import { ThemedShadcnLayout } from '@/components/theme/themed-shadcn-layout'
+import { ThemedShadcnCard } from '@/components/theme/themed-shadcn-card'
+import { ThemedShadcnButton } from '@/components/theme/themed-shadcn-button'
+import { ThemedShadcnInput } from '@/components/theme/themed-shadcn-input'
+import { ThemedShadcnDialog } from '@/components/theme/themed-shadcn-dialog'
+import { Badge } from '@/components/ui/badge'
+import { Separator } from '@/components/ui/separator'
+
+export default function DashboardPage() {
+  return (
+    <ThemedShadcnLayout
+      header={
+        <div className="flex items-center space-x-4">
+          <h1 className="text-xl font-bold">Dashboard Wiki AI</h1>
+          <Badge variant="secondary">Beta</Badge>
+        </div>
+      }
+      sidebar={
+        <nav className="space-y-2">
+          <a href="#" className="block px-3 py-2 rounded-md bg-accent text-accent-foreground">
+            Visão Geral
+          </a>
+          <a href="#" className="block px-3 py-2 rounded-md hover:bg-accent hover:text-accent-foreground">
+            Artigos
+          </a>
+          <a href="#" className="block px-3 py-2 rounded-md hover:bg-accent hover:text-accent-foreground">
+            Configurações
+          </a>
+        </nav>
+      }
+      showThemeToggle
+      themeTogglePosition="header"
+    >
+      <div className="space-y-6">
+        {/* Cards de Estatísticas */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <ThemedShadcnCard
+            title="Total de Artigos"
+            description="Artigos publicados este mês"
+            variant="elevated"
+          >
+            <div className="text-3xl font-bold text-primary">42</div>
+            <p className="text-sm text-muted-foreground">
+              +12% em relação ao mês passado
+            </p>
+          </ThemedShadcnCard>
+
+          <ThemedShadcnCard
+            title="Visualizações"
+            description="Páginas visualizadas hoje"
+            variant="elevated"
+          >
+            <div className="text-3xl font-bold text-primary">1,234</div>
+            <p className="text-sm text-muted-foreground">
+              +8% em relação a ontem
+            </p>
+          </ThemedShadcnCard>
+
+          <ThemedShadcnCard
+            title="Usuários Ativos"
+            description="Usuários únicos esta semana"
+            variant="elevated"
+          >
+            <div className="text-3xl font-bold text-primary">567</div>
+            <p className="text-sm text-muted-foreground">
+              +15% em relação à semana passada
+            </p>
+          </ThemedShadcnCard>
+        </div>
+
+        <Separator />
+
+        {/* Formulário de Pesquisa */}
+        <ThemedShadcnCard title="Pesquisar Conteúdo">
+          <div className="space-y-4">
+            <ThemedShadcnInput
+              label="Palavras-chave"
+              placeholder="Digite termos de pesquisa..."
+              leftIcon="🔍"
+              variant="filled"
+            />
+            
+            <div className="flex gap-2">
+              <ThemedShadcnButton variant="default">
+                Pesquisar
+              </ThemedShadcnButton>
+              <ThemedShadcnButton variant="outline">
+                Limpar
+              </ThemedShadcnButton>
+            </div>
+          </div>
+        </ThemedShadcnCard>
+
+        {/* Modal de Configurações */}
+        <ThemedShadcnDialog
+          trigger={
+            <ThemedShadcnButton variant="secondary">
+              Configurações
+            </ThemedShadcnButton>
+          }
+          title="Configurações do Dashboard"
+          description="Personalize sua experiência de usuário"
+        >
+          <div className="space-y-4">
+            <ThemedShadcnInput
+              label="Nome de Exibição"
+              placeholder="Seu nome"
+              defaultValue="Usuário"
+            />
+            
+            <div className="flex items-center space-x-2">
+              <input type="checkbox" id="notifications" className="rounded" />
+              <label htmlFor="notifications" className="text-sm">
+                Receber notificações
+              </label>
+            </div>
+          </div>
+          
+          <div className="flex gap-2">
+            <ThemedShadcnButton variant="default">
+              Salvar
+            </ThemedShadcnButton>
+            <ThemedShadcnButton variant="outline">
+              Cancelar
+            </ThemedShadcnButton>
+          </div>
+        </ThemedShadcnDialog>
+      </div>
+    </ThemedShadcnLayout>
+  )
+}
+```
+
+## 6. Configuração de CSS Variables
+
+### globals.css com ShadCN + Tema
+```css
+/* src/app/globals.css */
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    /* ShadCN UI Colors */
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: 221.2 83.2% 53.3%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96%;
+    --secondary-foreground: 222.2 84% 4.9%;
+    --muted: 210 40% 96%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 210 40% 96%;
+    --accent-foreground: 222.2 84% 4.9%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 221.2 83.2% 53.3%;
+    --radius: 0.5rem;
+
+    /* Custom Theme Colors */
+    --theme-primary: 221.2 83.2% 53.3%;
+    --theme-secondary: 210 40% 96%;
+    --theme-accent: 210 40% 96%;
+    --theme-muted: 210 40% 96%;
+    --theme-border: 214.3 31.8% 91.4%;
+  }
+
+  .dark {
+    /* ShadCN UI Dark Colors */
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 217.2 91.2% 59.8%;
+    --primary-foreground: 222.2 84% 4.9%;
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 224.3 76.3% 94.1%;
+
+    /* Custom Theme Dark Colors */
+    --theme-primary: 217.2 91.2% 59.8%;
+    --theme-secondary: 217.2 32.6% 17.5%;
+    --theme-accent: 217.2 32.6% 17.5%;
+    --theme-muted: 217.2 32.6% 17.5%;
+    --theme-border: 217.2 32.6% 17.5%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* Custom Theme Utilities */
+@layer utilities {
+  .theme-transition {
+    @apply transition-all duration-200 ease-in-out;
+  }
+  
+  .theme-focus {
+    @apply focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 dark:focus:ring-offset-background;
+  }
+}
+```
+
+## 7. Boas Práticas de Integração
+
+### 1. Mantenha a Consistência
+```tsx
+// ✅ Bom: Use as mesmas variáveis CSS
+<div className="bg-background text-foreground border border-border">
+  <Button variant="default">Botão</Button>
+</div>
+
+// ❌ Ruim: Misture cores hardcoded
+<div className="bg-white dark:bg-gray-800 text-black dark:text-white">
+  <Button variant="default">Botão</Button>
+</div>
+```
+
+### 2. Use Variants do ShadCN
+```tsx
+// ✅ Bom: Aproveite os variants existentes
+<ThemedShadcnButton variant="destructive">
+  Excluir
+</ThemedShadcnButton>
+
+// ❌ Ruim: Crie variants duplicados
+<ThemedShadcnButton variant="danger">
+  Excluir
+</ThemedShadcnButton>
+```
+
+### 3. Compose Componentes
+```tsx
+// ✅ Bom: Compose componentes existentes
+<ThemedShadcnCard>
+  <CardHeader>
+    <CardTitle>Título</CardTitle>
+  </CardHeader>
+  <CardContent>Conteúdo</CardContent>
+</ThemedShadcnCard>
+
+// ❌ Ruim: Reimplemente funcionalidades
+<div className="bg-card border border-border rounded-lg p-6">
+  <h3 className="text-lg font-semibold">Título</h3>
+  <div>Conteúdo</div>
+</div>
+```
+
+### 4. Teste a Integração
+```tsx
+// Componente de teste para verificar integração
+export function IntegrationTest() {
+  return (
+    <div className="space-y-4 p-4">
+      <h2 className="text-lg font-semibold">Teste de Integração</h2>
+      
+      {/* Teste ShadCN puro */}
+      <div className="space-y-2">
+        <h3>ShadCN UI Puro</h3>
+        <Button variant="default">Botão Default</Button>
+        <Button variant="destructive">Botão Destructive</Button>
+        <Input placeholder="Input padrão" />
+      </div>
+      
+      {/* Teste Componentes Temáticos */}
+      <div className="space-y-2">
+        <h3>Componentes Temáticos</h3>
+        <ThemedShadcnButton variant="default">Botão Temático</ThemedShadcnButton>
+        <ThemedShadcnInput placeholder="Input temático" />
+      </div>
+      
+      {/* Teste Integração */}
+      <div className="space-y-2">
+        <h3>Integração</h3>
+        <ThemedShadcnCard title="Card Integrado">
+          <p>Este card usa ShadCN + tema</p>
+          <div className="flex gap-2 mt-4">
+            <Button variant="outline">ShadCN</Button>
+            <ThemedShadcnButton variant="outline">Temático</ThemedShadcnButton>
+          </div>
+        </ThemedShadcnCard>
+      </div>
+    </div>
+  )
+}
+```
+
+## 8. Checklist de Implementação
+
+### Configuração Base
+- [ ] CSS variables configuradas para ShadCN + tema
+- [ ] Tailwind configurado com darkMode: 'selector'
+- [ ] next-themes instalado e configurado
+- [ ] ShadCN UI inicializado
+
+### Componentes Integrados
+- [ ] ThemedShadcnButton implementado
+- [ ] ThemedShadcnInput implementado
+- [ ] ThemedShadcnCard implementado
+- [ ] ThemedShadcnDialog implementado
+- [ ] ThemedShadcnLayout implementado
+
+### Hooks e Utilitários
+- [ ] useShadcnTheme hook criado
+- [ ] Padrões de composição documentados
+- [ ] CSS variables unificadas
+- [ ] Transições suaves implementadas
+
+### Testes e Validação
+- [ ] Componentes funcionam em ambos os temas
+- [ ] Integração visual consistente
+- [ ] Performance adequada
+- [ ] Acessibilidade mantida
+
+### Documentação
+- [ ] Exemplos de uso documentados
+- [ ] Padrões de integração claros
+- [ ] Boas práticas estabelecidas
+- [ ] Troubleshooting documentado
+
+Esta integração fornece uma base sólida para usar ShadCN UI com componentes de tema customizados, garantindo consistência visual e experiência de usuário otimizada em todos os temas do wiki.ai.br.
+description:
+globs:
+alwaysApply: true
+---
